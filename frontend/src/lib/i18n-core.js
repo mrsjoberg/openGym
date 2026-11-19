@@ -15,6 +15,8 @@ export const LANGS = {
 import { INSTR_LANGS, EXERCISE_NAME_LANGS } from './catalogue-langs.js'
 // Other names an exercise may be shown by (#903).
 import { shownNameOf } from './exercise-aliases.js'
+// FitKat: the app's own name in every string, whatever the language (fitkat/brand.js).
+import { branded } from '../fitkat/brand.js'
 export { INSTR_LANGS, EXERCISE_NAME_LANGS }
 // Languages rendered right-to-left; i18n.js setLang applies the direction from this.
 export const RTL_LANGS = new Set(['ar', 'fa'])
@@ -91,7 +93,7 @@ export function t(s, ...args) {
     v = (typeof args[0] === 'number' && forms[pluralCategory(args[0])]) || forms.other || forms.many || forms.one || s
   }
   for (let i = 0; i < args.length; i++) v = v.replaceAll('{' + i + '}', args[i])
-  return v
+  return branded(s, v)
 }
 
 /* ------------------------------------------------------------------ plurals --
@@ -128,7 +130,7 @@ export function tn(one, other, n, ...rest) {
       let v = form
       const args = [n, ...rest]
       for (let i = 0; i < args.length; i++) v = v.replaceAll('{' + i + '}', args[i])
-      return v
+      return branded(other, v)
     }
   }
   return t(n === 1 ? one : other, n, ...rest)
@@ -144,7 +146,7 @@ export function tnf(one, other, n, shown, ...rest) {
   if (!v) v = (n === 1 ? dict[one] : (typeof forms === 'string' ? forms : null)) || (n === 1 ? one : other)
   const args = [shown, ...rest]
   for (let i = 0; i < args.length; i++) v = v.replaceAll('{' + i + '}', args[i])
-  return v
+  return branded(n === 1 ? one : other, v)
 }
 
 // The English steps and descriptions of 5,000+ exercises are too big to sit in the bundle every

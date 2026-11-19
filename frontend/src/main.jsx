@@ -11,6 +11,8 @@ import { registerDailyFormSource } from './lib/daily-form.js'
 import './admin.css'
 import './coach.css'
 import './index.css'
+// FitKat: the theme layer, after the sheet it overrides.
+import './fitkat/theme.css'
 import { hideBoot, handOverFromLaunchScreen } from './lib/boot.js'
 import { guardFocusZoom } from './lib/viewport-zoom.js'
 import { initBuildCaps } from './lib/channel.js'

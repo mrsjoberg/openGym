@@ -17,6 +17,8 @@ import { todayISO } from './format.js'
 import { exConverted, exView, viewTarget, storedTarget, storedRow } from './ex-unit.js'
 import { warmupSource, warmupModeOf, withWarmupBlock } from './warmup-ramp.js'
 import { withSessionTarget } from './session-targets.js'
+// FitKat: approved replacements and skips for the place the session runs at (fitkat/place-swaps.js).
+import { routineHere } from '../fitkat/place-swaps.js'
 
 /**
  * Where a planned session's reps come from (Settings → During a workout). 'plan', the default:
@@ -304,10 +306,11 @@ export function buildSessionEntries(st, r) {
   // The prescription is applied as the session is built, so you walk up to the bar with the
   // right weight already on the screen instead of being told about it afterwards.
   const noProg = r?.excludeFromProgression === true
-  const entries = (r ? r.ex : []).map(cfg => {
+  const here = routineHere(st, r)
+  const entries = (here ? here.ex : []).map(cfg => {
     const { deload, ...built } = buildPlannedEntry(st, cfg, r, { noProg })
     // A programme's deload week stays out of progression, as a deload routine does.
-    return { id: cfg.id, sg: cfg.sg, ...built, ...(noProg || deload ? { noProg: true } : {}) }
+    return { id: cfg.id, sg: cfg.sg, ...built, ...(cfg.swappedFrom ? { swappedFrom: cfg.swappedFrom } : {}), ...(noProg || deload ? { noProg: true } : {}) }
   })
   // The rows a coach or planner set for this routine on this day (#972, lib/session-targets.js),
   // in place of the prescription's; the routine and its targets stay what they built.

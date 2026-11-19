@@ -15,6 +15,7 @@
 // device, pulled by the other, re-derived there and pushed back, round after round. `lang` is
 // only written when someone picks one in Settings, which also clears the mark.
 import { LANGS } from './i18n-core.js'
+import { isOffered } from '../fitkat/brand.js'
 
 const KEYS = Object.keys(LANGS)
 
@@ -35,8 +36,10 @@ export function matchLocale(tag) {
 /** The language a copy that never chose one should be in, or null for a copy that chose. */
 export function autoLang(S, config, navLangs = []) {
   if (!S || S.langAuto !== true) return null
-  return matchLocale(config?.default_lang)
-    || (navLangs || []).map(matchLocale).find(Boolean)
+  // FitKat: only the languages it offers; a browser in any other gets English.
+  const offered = tag => { const l = matchLocale(tag); return l && isOffered(l) ? l : null }
+  return offered(config?.default_lang)
+    || (navLangs || []).map(offered).find(Boolean)
     || 'en'
 }
 

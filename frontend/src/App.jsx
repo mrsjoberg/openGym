@@ -70,6 +70,7 @@ import { useNfcTagLinks } from './components/Nfc.jsx'
 import { useRoutineLinks } from './components/RoutineShare.jsx'
 import Login from './views/Login.jsx'
 import MobileOnboarding from './views/MobileOnboarding.jsx'
+import { lightOnly, PAGE_COLOR } from './fitkat/brand.js'
 import PermissionSteps from './views/PermissionSteps.jsx'
 import Home from './views/Home.jsx'
 import { tintCss } from './lib/streak-icons.js'
@@ -135,7 +136,8 @@ const scrollPositions = new Map()
 bindUI(useUI)   // lets the shared controls open sheets without importing the store at module scope
 
 // theme === 'system' follows the OS/browser preference instead of a fixed choice.
-const resolveTheme = theme => theme === 'light' || theme === 'dark'
+// FitKat: light only while there is no dark version of the look (fitkat/brand.js).
+const resolveTheme = theme => lightOnly() ? 'light' : theme === 'light' || theme === 'dark'
   ? theme
   : (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
 
@@ -144,7 +146,7 @@ function applyPrefs(theme, accent) {
   de.dataset.theme = resolveTheme(theme)
   applyAccent(de, accent, de.dataset.theme)
   const meta = document.querySelector('meta[name="theme-color"]')
-  if (meta) meta.content = de.dataset.theme === 'light' ? '#f2f2f7' : '#000000'
+  if (meta) meta.content = de.dataset.theme === 'light' ? (lightOnly() ? PAGE_COLOR : '#f2f2f7') : '#000000'
   if (MOBILE) { setSystemBarsLight(de.dataset.theme === 'light'); setSystemAccent(accent) }
 }
 

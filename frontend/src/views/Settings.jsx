@@ -49,6 +49,7 @@ import { api, webauthnOK, passkeyRegister, passkeyError, IS_ANDROID } from '../l
 import { pushSupported, enablePush, disablePush, sendTestPush, syncPushSubscription } from '../lib/push.js'
 import { wakeLockSupported } from '../lib/wakelock.js'
 import { t, tn, LANGS, INSTR_LANGS, EXERCISE_NAME_LANGS, baseLang, dateLocale } from '../lib/i18n.js'
+import { isOffered, lightOnly, appName } from '../fitkat/brand.js'
 import { nameIn, said } from '../lib/a11y-name.js'
 import { effectiveLang } from '../lib/default-lang.js'
 import { DEMO, REPO } from '../lib/demo.js'
@@ -494,7 +495,7 @@ export default function Settings({ page = null, find = null, via = null, entryKe
   const layout = ['list', 'compact', 'focus'].includes(S.workoutView) ? S.workoutView : 'cards'
   const layoutLabel = { cards: t('Cards'), list: t('List'), compact: t('Compact') }[layout]
   const activeProfile = (S.equipProfiles || []).find(p => p.id === S.activeEquipId)
-  const themeLabel = { dark: t('Dark'), light: t('Light'), system: t('System') }[S.theme || 'dark'] || t('Dark')
+  const themeLabel = { dark: t('Dark'), light: t('Light'), system: t('System') }[lightOnly() ? 'light' : S.theme || 'dark'] || t('Dark')
   // The value a root row shows, so most questions are answered without opening the page.
   const preview = {
     workout: () => (S.restSec > 0 ? t('{0} rest', fmtRest(S.restSec)) : t('No rest timer')) + ' · ' + layoutLabel,
@@ -954,7 +955,7 @@ export default function Settings({ page = null, find = null, via = null, entryKe
         <SelectRow
           icon="globe" iconTint="var(--blue)" title={t('Language')}
           value={lang} onChange={v => update(s => { s.lang = v; s.langAuto = false })}
-          options={Object.entries(LANGS).map(([k, name]) => ({
+          options={Object.entries(LANGS).filter(([k]) => isOffered(k) || k === lang).map(([k, name]) => ({
             value: k, label: name,
             subtitle: INSTR_LANGS.includes(k) ? null : t("Exercise instructions aren't translated into this language yet, so they stay in English."),
           }))}
@@ -1068,7 +1069,7 @@ export default function Settings({ page = null, find = null, via = null, entryKe
 
     look: () => <>
       <Section footer={DEMO || MOBILE || !user ? undefined : t('synced with your profile')}>
-        <Row icon="moon" iconTint="var(--indigo)" title={t('Theme')}>
+        {!lightOnly() && <Row icon="moon" iconTint="var(--indigo)" title={t('Theme')}>
           <Segmented
             className="seg-inline"
             options={[
@@ -1079,7 +1080,7 @@ export default function Settings({ page = null, find = null, via = null, entryKe
             value={S.theme || 'dark'}
             onChange={v => update(s => { s.theme = v })}
           />
-        </Row>
+        </Row>}
         <div className="lrow" style={{ flexWrap: 'wrap', rowGap: 12, paddingBottom: 14 }}>
           <span className="lrow-i" style={{ '--tint': 'var(--purple)' }}><Icon name="palette" /></span>
           <span className="lrow-m"><span className="lrow-t">{t('Accent color')}</span></span>
@@ -1091,7 +1092,7 @@ export default function Settings({ page = null, find = null, via = null, entryKe
             emoji for those who like them (components/Glyph.jsx). Synced like the theme. */}
         <Row icon="sparkles" iconTint="var(--orange)" title={t('Icons')} subtitle={t('The flame, the medals and friends.')}>
           <Segmented className="seg-inline"
-            options={[{ value: 'opengym', label: 'openGym' }, { value: 'emoji', label: t('Emoji') }]}
+            options={[{ value: 'opengym', label: appName() }, { value: 'emoji', label: t('Emoji') }]}
             value={S.icons === 'emoji' ? 'emoji' : 'opengym'}
             onChange={v => update(s => { if (v === 'emoji') s.icons = 'emoji'; else delete s.icons })} />
         </Row>

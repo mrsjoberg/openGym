@@ -1,0 +1,99 @@
+/* ============================================================================
+   FitKat — theme layer
+   ----------------------------------------------------------------------------
+   Loaded after index.css (main.jsx) and changes nothing in it. Every rule here
+   overrides a token or a component rule for the light theme, the only theme
+   FitKat ships for now (fitkat/brand.js LIGHT_ONLY). One file of our own means
+   an upstream openGym change to index.css merges without a conflict.
+
+   The look: ivory page, sage panels, deep green ink, a forest accent and a
+   muted rose; a serif display face over a plain sans; near-square corners and
+   hairlines instead of filled cards.
+
+   Fonts: Manrope and Cormorant Garamond, both SIL Open Font License 1.1
+   (fonts/LICENSE-*.txt), bundled so the phone apps work offline. Latin and
+   Cyrillic only, the two scripts FitKat's languages need.
+   ========================================================================== */
+
+/* ----------------------------------------------------------------- fonts -- */
+@font-face{font-family:'Manrope';font-style:normal;font-display:swap;font-weight:200 800;src:url(./fonts/manrope-cyrillic-ext-wght-normal.woff2) format('woff2-variations');unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}
+@font-face{font-family:'Manrope';font-style:normal;font-display:swap;font-weight:200 800;src:url(./fonts/manrope-cyrillic-wght-normal.woff2) format('woff2-variations');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:'Manrope';font-style:normal;font-display:swap;font-weight:200 800;src:url(./fonts/manrope-latin-ext-wght-normal.woff2) format('woff2-variations');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Manrope';font-style:normal;font-display:swap;font-weight:200 800;src:url(./fonts/manrope-latin-wght-normal.woff2) format('woff2-variations');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Cormorant Garamond';font-style:normal;font-display:swap;font-weight:300 700;src:url(./fonts/cormorant-garamond-cyrillic-ext-wght-normal.woff2) format('woff2-variations');unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}
+@font-face{font-family:'Cormorant Garamond';font-style:normal;font-display:swap;font-weight:300 700;src:url(./fonts/cormorant-garamond-cyrillic-wght-normal.woff2) format('woff2-variations');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:'Cormorant Garamond';font-style:normal;font-display:swap;font-weight:300 700;src:url(./fonts/cormorant-garamond-latin-ext-wght-normal.woff2) format('woff2-variations');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Cormorant Garamond';font-style:normal;font-display:swap;font-weight:300 700;src:url(./fonts/cormorant-garamond-latin-wght-normal.woff2) format('woff2-variations');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Cormorant Garamond';font-style:italic;font-display:swap;font-weight:300 700;src:url(./fonts/cormorant-garamond-cyrillic-ext-wght-italic.woff2) format('woff2-variations');unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}
+@font-face{font-family:'Cormorant Garamond';font-style:italic;font-display:swap;font-weight:300 700;src:url(./fonts/cormorant-garamond-cyrillic-wght-italic.woff2) format('woff2-variations');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:'Cormorant Garamond';font-style:italic;font-display:swap;font-weight:300 700;src:url(./fonts/cormorant-garamond-latin-ext-wght-italic.woff2) format('woff2-variations');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Cormorant Garamond';font-style:italic;font-display:swap;font-weight:300 700;src:url(./fonts/cormorant-garamond-latin-wght-italic.woff2) format('woff2-variations');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
+/* ---------------------------------------------------------------- tokens -- */
+:root[data-theme="light"] {
+  --ivory:#f8f6f0; --sage:#e5e8dd; --ink:#303c35; --forest:#405849; --rose:#b48276; --rose-deep:#8a5548;
+
+  --bg:        var(--ivory);
+  --bg-el:     var(--ivory);
+  --surface:   #fffdf9;
+  --surface-2: var(--sage);
+  --surface-3: #d7d9ce;
+  --surface-raised: #fffdf9;
+  --raised-line: rgba(48,60,53,.14);
+
+  --label:     var(--ink);
+  /* #686e63 on the site is 4.2:1 on a sage panel; one step darker reaches 4.5:1 on both. */
+  --label-2:   #5f655b;
+  --label-3:   rgba(48,60,53,.40);
+  --label-4:   rgba(48,60,53,.16);
+  --label-dim: var(--label-2);
+
+  --sep:       #d7d9ce;
+  --sep-op:    rgba(48,60,53,.16);
+  --hair:      1px;
+
+  /* Status colours, pulled towards the palette: still told apart, no longer neon on ivory. */
+  --blue:#4a6b8a; --green:#4f7a5a; --red:#a8483c; --orange:#b5713a;
+  --yellow:#b8962e; --teal:#4d8a8a; --indigo:#5d5f8f; --pink:#b48276;
+  --purple:#7d6390; --mint:#6f9c8f; --brown:#8a6f55; --grey:#8a8f84;
+
+  --r-sm:2px; --r:2px; --r-lg:3px; --r-xl:4px; --r-card:2px;
+
+  --ff-display:'Cormorant Garamond',Georgia,'Times New Roman',serif;
+  --ff-text:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;
+  /* The serif has a small x-height, so its sizes sit a step above the sans they replace. */
+  --fs-large:2.375rem;
+  --ls-large:-.02em; --ls-title:-.012em; --ls-body:0; --ls-small:0;
+}
+@media (max-width:420px){:root[data-theme="light"]{--fs-large:2.125rem}}
+
+/* The accent a new profile starts with ('brand', lib/accent.js NEW_ACCENT) is FitKat's forest.
+   The other presets keep openGym's colours for anyone who picks one. */
+:root[data-theme="light"][data-accent="brand"] {
+  --acc:var(--forest); --acc-2:#34483c; --on-acc:var(--ivory); --acc-ink:var(--forest);
+  --green:#4f7a5a; --green-ink:#3f6349; --win-ink:#3f6349; --on-green:var(--ivory);
+  --knob-ring:transparent;
+}
+
+/* ------------------------------------------------------------ typography -- */
+:root[data-theme="light"] body{font-family:var(--ff-text)}
+:root[data-theme="light"] .hdr h1,
+:root[data-theme="light"] .t-large,
+:root[data-theme="light"] .sp-root-title{font-family:var(--ff-display);font-weight:500}
+:root[data-theme="light"] .t-title2,
+:root[data-theme="light"] .t-title3,
+:root[data-theme="light"] .sheet h3,
+:root[data-theme="light"] .stats-sect-h{font-family:var(--ff-display);font-weight:600;font-size:1.5rem;letter-spacing:var(--ls-title)}
+/* The small line over a group: the site's uppercase eyebrow. */
+:root[data-theme="light"] h4.sec,
+:root[data-theme="light"] .card h2{
+  font-size:var(--fs-caption2);font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+}
+
+/* ------------------------------------------------------------ components -- */
+/* Cards are outlined, not filled: a hairline on a surface one breath lighter than the page. */
+:root[data-theme="light"] .card{border:1px solid var(--sep)}
+:root[data-theme="light"] .btn{font-weight:500;letter-spacing:.01em}
+:root[data-theme="light"] .btn.primary{font-weight:600}
+:root[data-theme="light"] .chip{border-radius:2px;background:transparent;box-shadow:inset 0 0 0 1px var(--sep)}
+:root[data-theme="light"] .chip.on{background:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
