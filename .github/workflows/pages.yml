@@ -1,3 +1,4 @@
+# FitKat: also runs for the fitkat branch, which is what this fork publishes as its preview.
 # Publishes the browser-only demo to GitHub Pages: https://duartesantos8.github.io/openGym/
 #
 # Dormant from 2026-08-19 to 2026-09-10 while the GitHub account was suspended; live again since.
@@ -12,7 +13,7 @@ name: Deploy demo to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, fitkat]
     paths:
       - 'frontend/**'
       - 'catalogue/**'
