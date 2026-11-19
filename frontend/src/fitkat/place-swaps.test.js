@@ -6,6 +6,7 @@ import { mergeStates } from '../lib/sync-merge.js'
 import {
   suggestSwaps, fitsPlace, routineAtPlace, routineForPlace, routineHere, fitOf, swapKey,
   withApproved, withDeclined, withSkipped, withCleared, decisionOf, readDecision,
+  reviewList, undecidedCount, swappedCount, approveAll,
 } from './place-swaps.js'
 
 const ACC = { accV: 3 }
@@ -150,5 +151,25 @@ describe('sync', () => {
     const merged = mergeStates(phone, laptop)
     expect(merged.placeSwaps[k1].to).toBe('4742')
     expect(merged.placeSwaps[k2].to).toBe('1459')
+  })
+})
+
+describe('the review', () => {
+  const upperA = { id: 'r2', name: 'Upper A', ex: [{ id: '0289', sets: 3, reps: 10 }, { id: '0334', sets: 3, reps: 15 }] }   // dumbbell bench press, lateral raise
+  it('lists only what the place cannot do, routine by routine', () => {
+    const groups = reviewList({}, [lowerA, upperA], home)
+    expect(groups.map(g => [g.routine.name, g.rows.length])).toEqual([['Lower A', 4], ['Upper A', 1]])
+    expect(reviewList({}, [lowerA, upperA], gym)).toEqual([])
+    expect(undecidedCount({}, [lowerA, upperA], home)).toBe(5)
+  })
+  it('approve all takes every suggestion on screen and leaves the skip question to her', () => {
+    const key = swapKey('home', 'r1', '1409')
+    let S = { placeSwaps: {} }
+    for (let i = 0; i < 2; i++) S = { placeSwaps: withDeclined(S.placeSwaps, key, routineAtPlace(S, lowerA, home)[3].suggestion.ex.id, i + 1) }
+    S = { placeSwaps: approveAll(S.placeSwaps, S, [lowerA, upperA], home, 9) }
+    expect(swappedCount(S, [lowerA, upperA], home)).toBe(4)
+    expect(undecidedCount(S, [lowerA, upperA], home)).toBe(1)
+    expect(routineAtPlace(S, lowerA, home)[3].state).toBe('ask-skip')
+    expect(routineForPlace(S, lowerA, home).ex.filter(e => e.swappedFrom).length).toBe(3)
   })
 })

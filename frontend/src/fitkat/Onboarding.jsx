@@ -9,8 +9,9 @@ import { ft } from './strings.js'
 import KitPicker from './KitPicker.jsx'
 import { ProgrammeCards } from './ProgrammeLibrary.jsx'
 import { PLACE_KINDS, addPlaces, chipCount, makePlace } from './places.js'
+import { SwapReview } from './ReviewSwaps.jsx'
 
-const STEPS = 3
+const STEPS = 4
 
 export default function Onboarding() {
   const update = useStore(s => s.update)
@@ -73,12 +74,21 @@ export default function Onboarding() {
     </div>
   }
 
+  if (step === 'review') return <div className="fk-onb">
+    <div className="fk-onb-head">
+      <div className="fk-eyebrow">{ft('Step {0} of {1}', 4, STEPS)} · {places[0]?.name}</div>
+      <h1>{ft('A few swaps for')} <em>{places[0]?.name}</em>.</h1>
+      <p>{ft('Nothing changes until you approve.')}</p>
+    </div>
+    <SwapReview place={places[0]} onDone={finish} />
+  </div>
+
   return <div className="fk-onb">
     <div className="fk-onb-head">
       <div className="fk-eyebrow">{ft('Step {0} of {1}', 3, STEPS)} · {places[0]?.name}</div>
       <h1>{ft('Programmes that')} <em>{ft('fit')}</em>.</h1>
     </div>
-    <ProgrammeCards place={places[0] || null} onStart={finish} />
+    <ProgrammeCards place={places[0] || null} onStart={() => (places[0] ? setStep('review') : finish())} />
     <div className="fk-onb-foot">
       <button type="button" className="fk-link dim" onClick={finish}>{ft('No programme for now')}</button>
     </div>

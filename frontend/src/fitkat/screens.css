@@ -54,3 +54,32 @@
 .fk-place-top{display:flex;align-items:baseline;gap:12px}
 .fk-place-actions{display:flex;gap:22px}
 .fk-place .input{margin-top:6px}
+
+/* review swaps */
+.fk-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.btn.fk-outline{background:transparent;box-shadow:inset 0 0 0 1px var(--label)}
+.fk-progress{display:flex;align-items:center;gap:12px;color:var(--label-2);font-size:.8125rem;margin:6px 0 4px}
+.fk-progress-bar{flex:1;height:2px;background:var(--sep)}
+.fk-progress-bar>div{height:2px;background:var(--rose-deep);transition:width var(--med) var(--ease)}
+.fk-swap-group h4.sec{margin:18px 0 0;padding:0 0 8px;border-bottom:1px solid var(--sep)}
+.fk-swap{display:flex;gap:12px}
+.fk-swap.done{align-items:center;min-height:60px;padding:8px 0;border-bottom:1px solid var(--sep)}
+.fk-swap.done .fk-tag{display:inline-flex;align-items:center;gap:4px;flex:none}
+.fk-swap-names{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.fk-swap-from{color:var(--label-2);font-size:.8125rem;text-decoration:line-through}
+.fk-swap-from.big{font-size:.9375rem;font-weight:500}
+.fk-swap-to{font-family:var(--ff-display);font-size:1.25rem;font-weight:500;line-height:1.15}
+.fk-swap-to.big{font-size:1.4375rem}
+.fk-swap.open{flex-direction:column;background:var(--sage);padding:16px;margin:10px 0}
+.fk-swap-ex{display:flex;align-items:center;gap:14px}
+.fk-swap-ex>div:last-child{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fk-swap-why{color:var(--label-2);font-size:.8125rem;line-height:1.5}
+
+/* the place on Home, and the note in a workout */
+.fk-placebar{display:flex;flex-direction:column;margin:0 0 12px;border-top:1px solid var(--sep);border-bottom:1px solid var(--sep)}
+.fk-place-pick{display:flex;align-items:baseline;gap:10px;min-height:52px;text-align:start}
+.fk-place-pick-name{flex:1;font-family:var(--ff-display);font-size:1.4375rem;font-weight:500}
+.fk-place-note{display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:start;background:var(--sage);padding:8px 14px;margin-bottom:10px;font-size:.8125rem;line-height:1.5}
+.fk-place-note.quiet{background:transparent;padding:0;margin:0 0 4px;color:var(--label-2)}
+.fk-place-note .fk-link{flex:none}
+.fk-swapped-note{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:6px 2px;color:var(--label-2);font-size:.8125rem}

@@ -203,3 +203,29 @@ export function currentPlace(S) {
 
 /** buildSessionEntries' hook: the routine for where she is training now. */
 export const routineHere = (S, routine) => routineForPlace(S, routine, currentPlace(S))
+
+/* ------------------------------------------------------------- the review -- */
+
+/** What there is to review at a place: [{ routine, rows }], only routines with something the kit cannot do. */
+export function reviewList(S, routines, place) {
+  if (!place) return []
+  return list(routines).map(routine => ({ routine, rows: routineAtPlace(S, routine, place).filter(r => r.state !== 'fits') }))
+    .filter(g => g.rows.length)
+}
+
+/** Exercises still waiting for her answer at a place. */
+export const undecidedCount = (S, routines, place) =>
+  reviewList(S, routines, place).reduce((n, g) => n + g.rows.filter(r => r.state !== 'approved' && r.state !== 'skipped').length, 0)
+
+/** Exercises that run as an approved replacement at a place. */
+export const swappedCount = (S, routines, place) =>
+  reviewList(S, routines, place).reduce((n, g) => n + g.rows.filter(r => r.state === 'approved').length, 0)
+
+/** S.placeSwaps with every suggestion now on screen approved. Exercises at the skip question stay hers to answer. */
+export function approveAll(map, S, routines, place, now = Date.now()) {
+  let out = isMap(map) ? map : {}
+  for (const g of reviewList(S, routines, place)) for (const r of g.rows) {
+    if (r.state === 'pending') out = withApproved(out, swapKey(place.id, g.routine.id, r.cfg.id), r.suggestion.ex.id, now)
+  }
+  return out
+}

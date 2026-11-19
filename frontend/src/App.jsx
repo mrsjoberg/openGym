@@ -74,6 +74,7 @@ import { lightOnly, overlayOn, PAGE_COLOR } from './fitkat/brand.js'
 import FitkatOnboarding from './fitkat/Onboarding.jsx'
 import FitkatPlaces from './fitkat/Places.jsx'
 import FitkatProgrammeLibrary from './fitkat/ProgrammeLibrary.jsx'
+import FitkatReviewSwaps from './fitkat/ReviewSwaps.jsx'
 import PermissionSteps from './views/PermissionSteps.jsx'
 import Home from './views/Home.jsx'
 import { tintCss } from './lib/streak-icons.js'
@@ -404,6 +405,7 @@ function Shell() {
   const view = l => (!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : permSteps ? <PermissionSteps /> : fitkatSetup ? <FitkatOnboarding /> : (
     <Routes location={l}>
       <Route path="/places" element={<FitkatPlaces />} />
+      <Route path="/swaps" element={<FitkatReviewSwaps />} />
       <Route path="/plan/library" element={<FitkatProgrammeLibrary />} />
       <Route path="/home" element={<Home />} />
       {/* A module switched off (Settings → Modules, lib/modules.js) takes its screens with it: the

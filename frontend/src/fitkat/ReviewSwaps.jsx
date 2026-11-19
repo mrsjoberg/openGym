@@ -1,0 +1,114 @@
+// Review swaps: every exercise the place's kit cannot do, with a suggested replacement she
+// approves or turns down. Two refusals and the question becomes whether to skip it there. Nothing
+// in a routine changes until she has approved it; every button here only writes a decision
+// (place-swaps.js), and the routines themselves are never rewritten.
+import { useNavigate } from 'react-router-dom'
+import { useStore } from '../store/useStore.js'
+import { useLang } from '../lib/i18n.js'
+import { exerciseNameText } from '../lib/format.js'
+import { menuSheet } from '../sheets.jsx'
+import Icon from '../components/Icon.jsx'
+import { Thumb } from '../components/Media.jsx'
+import { ft } from './strings.js'
+import { placesOf } from './places.js'
+import {
+  currentPlace, reviewList, undecidedCount, approveAll, suggestSwaps, swapKey,
+  withApproved, withDeclined, withSkipped, withCleared,
+} from './place-swaps.js'
+
+const nameOf = ex => (ex ? exerciseNameText(ex) : '')
+// Why this one: what it shares with the exercise it stands in for, and what it uses.
+const reason = (row, s) => [
+  s.loose ? ft('Works nearby muscles') : ft('Same muscle'),
+  s.sameMovement ? ft('same movement') : ft('similar movement'),
+  ft('{0} sets kept', row.cfg.sets || 0),
+].join(', ') + '.'
+
+function Row({ S, place, routine, row, write }) {
+  const key = swapKey(place.id, routine.id, row.cfg.id)
+  const from = nameOf(row.ex)
+  // "No, let me choose": more of what the place can do for the same muscle, hers to pick from.
+  const choose = () => {
+    const held = routine.ex.map(e => e.id)
+    const more = suggestSwaps(row.ex, place, { exclude: held, n: 8 })
+    menuSheet({
+      title: ft('Instead of {0}', from),
+      items: more.map(s => ({ label: nameOf(s.ex), sub: s.loose ? ft('Works nearby muscles') : undefined, onClick: () => write(m => withApproved(m, key, s.ex.id)) })),
+    })
+  }
+  if (row.state === 'approved') return <div className="fk-swap done">
+    <div className="fk-swap-names"><span className="fk-swap-from">{from}</span><span className="fk-swap-to">{nameOf(row.to)}</span></div>
+    <span className="fk-tag fits"><Icon name="check" /> {ft('Approved')}</span>
+    <button type="button" className="fk-link dim" onClick={() => write(m => withCleared(m, key))}>{ft('Undo')}</button>
+  </div>
+  if (row.state === 'skipped') return <div className="fk-swap done">
+    <div className="fk-swap-names"><span className="fk-swap-to">{from}</span><span className="fk-prog-about">{ft('Skipped at {0}', place.name)}</span></div>
+    <button type="button" className="fk-link dim" onClick={() => write(m => withCleared(m, key))}>{ft('Restore')}</button>
+  </div>
+  if (row.state === 'pending') {
+    const s = row.suggestion
+    return <div className="fk-swap open">
+      <div className="fk-swap-ex"><Thumb ex={row.ex} /><div><div className="fk-eyebrow">{ft('Instead of')}</div><div className="fk-swap-from big">{from}</div></div></div>
+      <div className="fk-swap-ex"><Thumb ex={s.ex} /><div><div className="fk-tag">{row.declined.length ? ft('Second suggestion') : ft('Suggested')}</div><div className="fk-swap-to big">{nameOf(s.ex)}</div></div></div>
+      <p className="fk-swap-why">{reason(row, s)}</p>
+      <div className="fk-two">
+        <button type="button" className="btn primary" onClick={() => write(m => withApproved(m, key, s.ex.id))}>{ft('Approve')}</button>
+        <button type="button" className="btn fk-outline" onClick={() => write(m => withDeclined(m, key, s.ex.id))}>{row.declined.length ? ft('Reject') : ft('Suggest another')}</button>
+      </div>
+    </div>
+  }
+  // Two refusals, or nothing the place can offer: the skip question.
+  return <div className="fk-swap open" role="group" aria-label={ft('Do you want to skip this exercise?')}>
+    <div className="fk-swap-to big">{ft('Do you want to skip this exercise?')}</div>
+    <p className="fk-swap-why">{ft('{0} has no approved replacement. Skipping takes it out of {1} while you train at {2}. It stays in your plan everywhere else.', from, routine.name, place.name)}</p>
+    <div className="fk-two">
+      <button type="button" className="btn primary" onClick={() => write(m => withSkipped(m, key))}>{ft('Yes, skip it')}</button>
+      <button type="button" className="btn fk-outline" onClick={choose}>{ft('No, let me choose')}</button>
+    </div>
+  </div>
+}
+
+/** The review itself, shared by its own screen and the last step of onboarding. */
+export function SwapReview({ place, onDone }) {
+  const S = useStore(s => s.S)
+  const update = useStore(s => s.update)
+  const write = fn => update(s => { s.placeSwaps = fn(s.placeSwaps) })
+  const groups = reviewList(S, S.routines, place)
+  const total = groups.reduce((n, g) => n + g.rows.length, 0)
+  const left = undecidedCount(S, S.routines, place)
+  if (!total) return <>
+    <p className="fk-note">{ft('Everything in your plan fits {0}. Nothing to swap.', place.name)}</p>
+    {onDone && <button type="button" className="btn primary" onClick={onDone}>{ft('Done')}</button>}
+  </>
+  return <>
+    <div className="fk-progress" role="img" aria-label={ft('{0} of {1} reviewed', total - left, total)}>
+      <div className="fk-progress-bar"><div style={{ width: (100 * (total - left) / total) + '%' }} /></div>
+      <span>{ft('{0} of {1} reviewed', total - left, total)}</span>
+    </div>
+    {groups.map(g => <div key={g.routine.id} className="fk-swap-group">
+      <h4 className="sec">{g.routine.name}</h4>
+      {g.rows.map(row => <Row key={row.cfg.id} S={S} place={place} routine={g.routine} row={row} write={write} />)}
+    </div>)}
+    <div className="fk-onb-foot">
+      {left > 0 && <button type="button" className="fk-link" onClick={() => write(m => approveAll(m, S, S.routines, place))}>{ft('Approve all suggestions')}</button>}
+      {onDone && <button type="button" className="btn primary" onClick={onDone}>{left ? ft('Finish later') : ft('Done')}</button>}
+    </div>
+  </>
+}
+
+export default function ReviewSwaps() {
+  const S = useStore(s => s.S)
+  const nav = useNavigate()
+  useLang()
+  const place = currentPlace(S) || placesOf(S)[0] || null
+  return <div className="narrow fk-page">
+    <div className="hdr">
+      <button className="iconbtn" data-back="/home" onClick={() => nav('/home')} aria-label={ft('Back')}><Icon name="chevronLeft" /></button>
+      <div style={{ flex: 1, margin: '0 12px', minWidth: 0 }}>
+        <h1>{ft('Swaps for')} <em>{place ? place.name : ''}</em>.</h1>
+        <div className="sub">{ft('Nothing changes until you approve.')}</div>
+      </div>
+    </div>
+    {place ? <SwapReview place={place} onDone={() => nav('/home')} /> : <p className="fk-note">{ft('Add a place first, in Settings.')}</p>}
+  </div>
+}
