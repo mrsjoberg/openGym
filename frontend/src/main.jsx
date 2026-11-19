@@ -13,6 +13,7 @@ import './coach.css'
 import './index.css'
 // FitKat: the theme layer, after the sheet it overrides.
 import './fitkat/theme.css'
+import './fitkat/screens.css'
 import { hideBoot, handOverFromLaunchScreen } from './lib/boot.js'
 import { guardFocusZoom } from './lib/viewport-zoom.js'
 import { initBuildCaps } from './lib/channel.js'

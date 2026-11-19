@@ -70,7 +70,10 @@ import { useNfcTagLinks } from './components/Nfc.jsx'
 import { useRoutineLinks } from './components/RoutineShare.jsx'
 import Login from './views/Login.jsx'
 import MobileOnboarding from './views/MobileOnboarding.jsx'
-import { lightOnly, PAGE_COLOR } from './fitkat/brand.js'
+import { lightOnly, overlayOn, PAGE_COLOR } from './fitkat/brand.js'
+import FitkatOnboarding from './fitkat/Onboarding.jsx'
+import FitkatPlaces from './fitkat/Places.jsx'
+import FitkatProgrammeLibrary from './fitkat/ProgrammeLibrary.jsx'
 import PermissionSteps from './views/PermissionSteps.jsx'
 import Home from './views/Home.jsx'
 import { tintCss } from './lib/streak-icons.js'
@@ -369,7 +372,9 @@ function Shell() {
   }, [inWorkout])
   // The chat owns the bottom of the screen as well: its composer sits where the tabs would be.
   // The first-launch card has no tabs either: they changed the route behind it.
-  const noTabs = inWorkout || loc.pathname === '/coach' || needsMobileOnboarding || permSteps
+  // FitKat: the first run asks where she trains and what is there (fitkat/Onboarding.jsx).
+  const fitkatSetup = overlayOn() && S.fitkatSetup !== true
+  const noTabs = inWorkout || loc.pathname === '/coach' || needsMobileOnboarding || permSteps || fitkatSetup
 
   const authed = user || isGuest
   // The first setup is through (sign-in or "Use on this device", and the phone's permission
@@ -396,8 +401,10 @@ function Shell() {
     </div>
   )
 
-  const view = l => (!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : permSteps ? <PermissionSteps /> : (
+  const view = l => (!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : permSteps ? <PermissionSteps /> : fitkatSetup ? <FitkatOnboarding /> : (
     <Routes location={l}>
+      <Route path="/places" element={<FitkatPlaces />} />
+      <Route path="/plan/library" element={<FitkatProgrammeLibrary />} />
       <Route path="/home" element={<Home />} />
       {/* A module switched off (Settings → Modules, lib/modules.js) takes its screens with it: the
           route falls through to the catch-all redirect below. The data stays where it is. */}

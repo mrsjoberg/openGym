@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { overlayOn } from '../fitkat/brand.js'
+import { ft } from '../fitkat/strings.js'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { DAYN, DAYS, weekOrder, weekStartOf, uid, exCount, routineCount, todayISO, fmtDate } from '../lib/format.js'
@@ -168,6 +170,7 @@ export default function Plan() {
         { icon: 'note', label: t('Print / Save as PDF'), disabled: !has, onClick: printWholePlan },
         { icon: 'download', label: t('Import a plan file'), onClick: () => fileRef.current?.click() },
         { icon: 'qr', label: t('Scan a QR code'), sub: t('A routine from a friend’s phone, the website or the poster by the squat rack.'), onClick: () => import('../components/ScanCode.jsx').then(m => m.scanQrCode()) },
+        ...(overlayOn() ? [{ icon: 'grid', label: ft('Programme library'), sub: ft('Programmes with a label for how well each fits where you train.'), onClick: () => nav('/plan/library') }] : []),
         { icon: 'clipboard', label: t('Load starter plan'), onClick: starterPlanSheet },
         { icon: 'history', label: t('Routine from a past workout'), disabled: !routineSources(S.workouts, 1).length, onClick: () => routineFromWorkoutSheet(id => nav('/plan/r/' + id)) },
         { icon: 'calendar', label: t('Programmes'), sub: t('Your routines as a block of weeks, with starter programmes to try.'), onClick: () => nav('/plan/programmes') },
