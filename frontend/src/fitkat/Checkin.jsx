@@ -4,26 +4,46 @@
 //
 // Three small steps in one sheet. The tiles; then, only if she tapped Sore, where; then, only
 // when there is something to ease (a sore area trained today, or a rough day), whether to.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Icon from '../components/Icon.jsx'
 import { exerciseNameText } from '../lib/format.js'
 import { exOr } from '../lib/exercises.js'
 import { ft } from './strings.js'
-import { TILES, SORE_AREAS, formFromTiles, easierOffer, soreEntries } from './checkin.js'
+import { TILES, SORE_AREAS, formFromTiles, easierOffer, soreEntries, sleepTileOf } from './checkin.js'
 
 const NONE = { sleep: null, energy: null, sore: null, stress: null }
+// 5.7 hours as "5 h 40 min".
+const hoursText = hours => { const h = Math.floor(hours), m = Math.round((hours - h) * 60); return m ? ft('{0} h {1} min', h, m) : ft('{0} h', h) }
 
 /**
  * `preview`: the session as it would start ({ entries }), to see what a sore area touches.
- * `onDone({ form, lighter, areas, soreOnly })`: `lighter` is 'load', 'sets' or null; `soreOnly`
- * says to ease just the exercises that work `areas`.
+ * `sleep`: a promise of last night's sleep from the phone's health store ({ hours, platform } or
+ * null), as openGym's own check-in takes it; a short night ticks the sleep tile until she says otherwise.
+ * `onDone({ form, lighter, areas, soreOnly, keep })`: `lighter` is 'load', 'sets' or null; `soreOnly`
+ * says to ease just the exercises that work `areas`; `keep` false means she unticked "asked once
+ * a day", so the check-in is to be switched off. `onSkip({ keep })` starts as planned.
  */
-export default function Checkin({ preview, onDone, onSkip }) {
+export default function Checkin({ preview, sleep = null, onDone, onSkip }) {
   const [tiles, setTiles] = useState(NONE)
   const [areas, setAreas] = useState([])
   const [step, setStep] = useState('tiles')
   const [pick, setPick] = useState('planned')
   const [kind, setKind] = useState('load')
+  const [keep, setKeep] = useState(true)
+  const [night, setNight] = useState(null)
+  const [sleepTouched, setSleepTouched] = useState(false)
+  useEffect(() => {
+    if (!sleep || typeof sleep.then !== 'function') return
+    let gone = false
+    sleep.then(r => { if (!gone && r?.hours > 0) setNight(r) }).catch(() => {})
+    return () => { gone = true }
+  }, [sleep])
+  // The phone's own number ticks the tile, once, until it is changed by hand.
+  useEffect(() => {
+    if (!night || sleepTouched) return
+    const level = sleepTileOf(night.hours)
+    if (level) setTiles(t => (t.sleep ? t : { ...t, sleep: level }))
+  }, [night, sleepTouched])
   const form = formFromTiles(tiles)
   const soreAreas = tiles.sore ? areas : []
   const offer = easierOffer(preview, form, soreAreas)
@@ -32,13 +52,14 @@ export default function Checkin({ preview, onDone, onSkip }) {
 
   const tap = key => {
     if (key === 'sore' && !tiles.sore) { setTiles(t => ({ ...t, sore: 'bit' })); setStep('sore'); return }
+    if (key === 'sleep') setSleepTouched(true)
     setTiles(t => ({ ...t, [key]: t[key] ? null : 'bit' }))
     if (key === 'sore') setAreas([])
   }
   const start = () => {
     if (step !== 'easier' && (offer.sore > 0 || offer.rough)) { setStep('easier'); return }
     const eased = step === 'easier' && pick !== 'planned'
-    onDone({ form, lighter: eased ? useKind : null, areas: soreAreas, soreOnly: eased && pick === 'sore' })
+    onDone({ form, lighter: eased ? useKind : null, areas: soreAreas, soreOnly: eased && pick === 'sore', keep })
   }
 
   if (step === 'sore') return <div className="fk-ci">
@@ -103,13 +124,20 @@ export default function Checkin({ preview, onDone, onSkip }) {
             <span>{areas.length ? areas.map(id => ft(SORE_AREAS.find(a => a.id === id).label)).join(', ') : ft('Say where')}</span><span className="u">{ft('Change')}</span></button>}
           <div className="fk-two" role="group" aria-label={ft(t.label)}>
             {['bit', 'lot'].map(l => <button key={l} type="button" className={'fk-ci-level' + (level === l ? ' on' : '')} aria-pressed={level === l}
-              onClick={() => setTiles(x => ({ ...x, [t.key]: l }))}>{ft(l === 'bit' ? 'A bit' : 'A lot')}</button>)}
+              onClick={() => { if (t.key === 'sleep') setSleepTouched(true); setTiles(x => ({ ...x, [t.key]: l })) }}>{ft(l === 'bit' ? 'A bit' : 'A lot')}</button>)}
           </div>
         </div>
       })}
     </div>
+    {night && <p className="fk-ci-p">{ft('{0} of sleep last night, from {1}.', hoursText(night.hours), night.platform === 'ios' ? 'Apple Health' : 'Health Connect')}</p>}
     <button type="button" className="btn primary" onClick={start}>{ft('Start workout')}</button>
-    <p className="fk-ci-p" style={{ textAlign: 'center' }}>{off ? ft('{0} things noted. Asked once a day.', off) : ft('Asked once a day.')}</p>
-    <button type="button" className="fk-link dim" style={{ alignSelf: 'center' }} onClick={onSkip}>{ft('Skip check-in')}</button>
+    <label className="fk-ci-keep">
+      <input type="checkbox" checked={keep} onChange={e => setKeep(e.target.checked)} />
+      <span className={'fk-box' + (keep ? ' on' : '')} aria-hidden="true">{keep && <Icon name="check" />}</span>
+      <span className="fk-ci-keep-t">{ft('Asked once a day')}</span>
+      <span className={'fk-tag' + (keep ? ' fits' : '')}>{keep ? ft('On') : ft('Off')}</span>
+    </label>
+    {!keep && <p className="fk-ci-p" role="status">{ft('Turn this on in the settings menu if you want to continue having daily check-in.')}</p>}
+    <button type="button" className="fk-link dim" style={{ alignSelf: 'center' }} onClick={() => onSkip({ keep })}>{ft('Skip check-in')}</button>
   </div>
 }

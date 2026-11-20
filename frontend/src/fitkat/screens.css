@@ -107,3 +107,9 @@
 .fk-ci-opt.on{background:var(--sage);box-shadow:inset 0 0 0 1.5px var(--label)}
 .fk-radio{flex:none;width:20px;height:20px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--label-2)}
 .fk-radio.on{box-shadow:inset 0 0 0 6px var(--acc)}
+
+/* "asked once a day": a tick box with its state said in words */
+.fk-ci-keep{display:flex;align-items:center;gap:12px;min-height:44px;cursor:pointer;position:relative}
+.fk-ci-keep input{position:absolute;opacity:0;width:22px;height:22px;margin:0}
+.fk-ci-keep input:focus-visible+.fk-box{outline:2px solid var(--acc);outline-offset:2px}
+.fk-ci-keep-t{flex:1;font-size:.8125rem;color:var(--label)}

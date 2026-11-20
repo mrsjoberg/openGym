@@ -14,7 +14,7 @@
 // and used: when today's session trains a sore area she is offered to go easier on just the
 // exercises that work it, on a rough day or not. "As planned" stays the default, and an eased
 // exercise sits out of progression the way openGym's lighter day does.
-import { FORM_KEYS, LIGHTER_KINDS, isRough, lighterChanges, readForm } from '../lib/daily-form.js'
+import { FORM_KEYS, LIGHTER_KINDS, isRough, lighterChanges, readForm, sleepRatingOf } from '../lib/daily-form.js'
 import { applyAdapt } from '../lib/coach-adapt.js'
 import { muscleWeightsOf } from '../lib/muscles.js'
 import { MUSCLE_GROUPS } from '../lib/muscle-filter.js'
@@ -59,6 +59,17 @@ export function tilesFromForm(form) {
     out[k] = good <= A_LOT ? 'lot' : good <= A_BIT + 0.5 ? 'bit' : null
   }
   return out
+}
+
+/**
+ * Last night's sleep from the phone's health store as the sleep tile: under 5 hours is "a lot",
+ * under 6 "a bit", anything longer leaves the tile alone. The same steps openGym's own check-in
+ * uses for its sleep row (lib/daily-form.js sleepRatingOf). Whatever wrote the night to Apple
+ * Health or Health Connect counts: a watch, a ring such as Oura, the phone itself.
+ */
+export function sleepTileOf(hours) {
+  const rating = sleepRatingOf(hours)
+  return rating == null ? null : rating <= 1 ? 'lot' : rating === 2 ? 'bit' : null
 }
 
 /* ------------------------------------------------------------- sore areas -- */

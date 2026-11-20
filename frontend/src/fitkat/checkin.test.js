@@ -4,7 +4,7 @@ import { EXIDX } from '../lib/exercises.js'
 import { buildSessionEntries } from '../lib/session-start.js'
 import {
   TILES, formFromTiles, tilesFromForm, SORE_AREAS, cleanAreas, withSoreAreas, soreAreasOf, areasOfExercise,
-  soreEntries, easierChanges, easierOffer, goEasierWhereSore, saidOf,
+  soreEntries, easierChanges, easierOffer, goEasierWhereSore, saidOf, sleepTileOf,
 } from './checkin.js'
 
 const none = { sleep: null, energy: null, sore: null, stress: null }
@@ -40,6 +40,17 @@ describe('the four tiles', () => {
     const tiles = { sleep: 'lot', energy: null, sore: 'bit', stress: null }
     expect(tilesFromForm(formFromTiles(tiles))).toEqual(tiles)
     expect(TILES.map(t => t.key)).toEqual(['sleep', 'energy', 'sore', 'stress'])
+  })
+})
+
+describe('sleep from the phone', () => {
+  it('ticks the sleep tile after a short night and leaves it alone after a fair one', () => {
+    expect(sleepTileOf(4.5)).toBe('lot')
+    expect(sleepTileOf(5.6)).toBe('bit')
+    expect(sleepTileOf(6)).toBe(null)
+    expect(sleepTileOf(8.2)).toBe(null)
+    expect(sleepTileOf(0)).toBe(null)
+    expect(sleepTileOf(undefined)).toBe(null)
   })
 })
 

@@ -4026,13 +4026,13 @@ function dailyCheckinSheet(routineIds, opts) {
   const sleep = MOBILE ? Promise.all([loadHealth(), nativePlatform()])
     .then(([h, platform]) => (h?.readVitals ? { hours: sleepHoursOn(h.vitals, today), platform } : null)).catch(() => null) : null
   const go = more => startFlow(routineIds, { ...opts, checked: true, ...more })
-  if (overlayOn()) return ui().openSheet(close => <FitkatCheckin preview={preview}
-    onDone={({ form, lighter: kind, areas, soreOnly }) => {
+  if (overlayOn()) return ui().openSheet(close => <FitkatCheckin preview={preview} sleep={sleep}
+    onDone={({ form, lighter: kind, areas, soreOnly, keep }) => {
       close()
-      update(s => { s.dayForm = withSoreAreas(withForm(s.dayForm, today, { ...form, lighter: kind }), today, areas) })
+      update(s => { s.dayForm = withSoreAreas(withForm(s.dayForm, today, { ...form, lighter: kind }), today, areas); if (keep === false) s.dailyForm = false })
       go(kind ? { lighter: kind, soreAreas: soreOnly ? areas : null } : {})
     }}
-    onSkip={() => { close(); go({}) }} />)
+    onSkip={({ keep } = {}) => { close(); if (keep === false) update(s => { s.dailyForm = false }); go({}) }} />)
   ui().openSheet(close => <DailyCheckin lighter={lighter} sleep={sleep}
     onDone={({ form, lighter: kind }) => {
       close()
