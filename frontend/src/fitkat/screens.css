@@ -113,3 +113,9 @@
 .fk-ci-keep input{position:absolute;opacity:0;width:22px;height:22px;margin:0}
 .fk-ci-keep input:focus-visible+.fk-box{outline:2px solid var(--acc);outline-offset:2px}
 .fk-ci-keep-t{flex:1;font-size:.8125rem;color:var(--label)}
+
+/* soreness on the recovery map: a hatch over the training colours, and the line that says so */
+.bm-mark{stroke:var(--rose-deep);stroke-width:4;pointer-events:none}
+.bm-mark-line{fill:var(--rose-deep)}
+.fk-sore-note{display:flex;gap:10px;align-items:flex-start;margin-top:10px;font-size:.8125rem;line-height:1.5;color:var(--label-2)}
+.fk-sore-swatch{flex:none;width:14px;height:14px;margin-top:3px;border:1px solid var(--rose-deep);background:repeating-linear-gradient(45deg,var(--rose-deep) 0 2px,transparent 2px 5px)}

@@ -163,6 +163,58 @@ export function markEased(active, kind) {
   for (const e of list(active?.entries)) if (e && e.noProg) e.eased = kind
 }
 
+/* ----------------------------------------------- said on Home, eased later -- */
+
+// The check-in can be answered from Home, before any workout (PlaceBar.jsx). Whether to go easier
+// is a question about a session, so it waits: the day is marked `pending` and the question is put
+// when she starts. openGym's withForm rebuilds the day's entry, which drops the mark again.
+
+/** S.dayForm with the day marked as answered from Home (the "go easier?" question still to come), or the mark taken off. */
+export function withPending(map, iso, on = true) {
+  if (!isMap(map) || !isMap(map[iso])) return map
+  const { pending, ...rest } = map[iso]
+  return { ...map, [iso]: on ? { ...rest, pending: true } : rest }
+}
+
+/** She answered from Home today and has not been asked about going easier yet. */
+export const easePending = (S, iso) => !!(isMap(S?.dayForm) && isMap(S.dayForm[iso]) && S.dayForm[iso].pending === true && readForm(S.dayForm[iso]))
+
+/** A day's check-in as the sheet shows it: { tiles, areas }, or null when there is none. */
+export function checkinOf(S, iso) {
+  const entry = isMap(S?.dayForm) ? S.dayForm[iso] : null
+  return readForm(entry) ? { tiles: tilesFromForm(entry), areas: soreAreasOf(S, iso) } : null
+}
+
+/* -------------------------------------------- on the recovery map and Home -- */
+
+// Soreness is what she said, fatigue is what the log works out (lib/recovery.js). They are shown
+// side by side and never mixed: the map keeps its training colours and hatches the sore muscles
+// over them, and Home says "you said" in a line of its own. It is a day's word: gone the next day.
+
+/** The day's sore muscles for the recovery map: { quadriceps: 'bit', hamstring: 'bit', ... }, empty for none. */
+export function soreMusclesOf(S, iso) {
+  const c = checkinOf(S, iso)
+  const out = {}
+  if (!c || !c.tiles.sore) return out
+  for (const id of c.areas) for (const m of musclesOfArea[id] || []) out[m] = c.tiles.sore
+  return out
+}
+
+/**
+ * The line for Home on a day she said she is sore: { areas, hits, planned }, or null. `routines`
+ * are today's, as they would run here; `hits` is how many of their exercises work a sore area.
+ * Quiet in the same cases as openGym's own hint (lib/recovery-hint.js): switched off, put away
+ * for the day, a workout under way or already done today.
+ */
+export function soreHint(S, { today, routines = [] } = {}) {
+  if (!S || !today || S.recoveryHint === false || S.recoveryHintDay === today || S.active) return null
+  if (list(S.workouts).some(w => w?.d === today)) return null
+  if (!Object.keys(soreMusclesOf(S, today)).length) return null
+  const areas = soreAreasOf(S, today)
+  const entries = list(routines).flatMap(r => list(r?.ex))
+  return { areas, hits: soreEntries({ entries }, areas).length, planned: entries.length > 0 }
+}
+
 /* ---------------------------------------------------------------- in words -- */
 
 /** Today's check-in as a few words for Home: ['slept badly', 'back a bit sore'], empty for a fine day or none. */

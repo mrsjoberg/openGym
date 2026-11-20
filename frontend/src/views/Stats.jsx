@@ -36,6 +36,7 @@ import BodyMap, { BodyMapLegend } from '../components/BodyMap.jsx'
 import { loadOfWeeklyPlan, loadOfWorkouts, muscleBalanceWindow, rankOf, MUSCLES, MUSCLE_NAME, musclesOf } from '../lib/muscles.js'
 import { fatigueOf, strengthOf, STRENGTH_FLOOR, LB_TO_KG } from '../lib/recovery.js'
 import { strengthExerciseRowsForMuscle } from '../lib/strength-exercises.js'
+import { SoreMapNote, SoreMuscleNote, soreMarksFor } from '../fitkat/SoreHint.jsx'
 import { fatigueStateOf, fatigueRecoveryMs, fmtRecoveryIn, recoveryEtas, fmtRecoveryShort, fmtReadyAt } from '../lib/recovery-view.js'
 import { e1rmSeries, best1RM, formulaOf } from '../lib/onerm.js'
 import { currentDbLoad, workoutAs } from '../lib/dumbbells.js'
@@ -344,8 +345,9 @@ function MusclesCard({ S, planFocus = false }) {
           aria-label={t('Exercises for {0}', t(MUSCLE_NAME[m]))} onClick={() => openMuscle(m)}>{t(MUSCLE_NAME[m])}</button>)}</div>}
       </>}
     </div> : view === 'fatigue' ? <>
-      <BodyMap className="tappable hm-fatigue" load={fatigue} thresholds={FATIGUE_LEVELS} body={S.body} selected={sel} onMuscle={toggleSel} />
+      <BodyMap className="tappable hm-fatigue" load={fatigue} thresholds={FATIGUE_LEVELS} body={S.body} selected={sel} onMuscle={toggleSel} marks={soreMarksFor(S)} />
       <FatigueLegend />
+      <SoreMapNote />
       <div className="muted small" style={{ marginTop: 10 }}>{t('Fatigue shows how recently each muscle was trained. High means rest.')}</div>
       {/* Recovery in hours (gm-live 1.4.5): when each tired muscle is ready again, from the same
           half-life model, assuming you rest it. Soonest first; a tap shows it on the map. */}
@@ -362,6 +364,7 @@ function MusclesCard({ S, planFocus = false }) {
       {sel && <div className="fdetail" style={{ borderTop: 'var(--hair) solid var(--sep)', marginTop: 4, paddingTop: 10 }}>
         <div className="fname"><b>{t(MUSCLE_NAME[sel])}</b></div>
         <FatigueBar value={selFatigue} />
+        <SoreMuscleNote slug={sel} />
         {selRecovery.toRecoveringMs != null && <div className="small dim" style={{ marginTop: 6 }}>{t('Recovering {0}', fmtRecoveryIn(selRecovery.toRecoveringMs))}</div>}
         {selRecovery.toReadyMs != null && <div className="small dim">{t('Ready {0}', fmtRecoveryIn(selRecovery.toReadyMs))} ({fmtReadyAt(now + selRecovery.toReadyMs, now)})</div>}
       </div>}

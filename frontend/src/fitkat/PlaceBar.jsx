@@ -8,12 +8,12 @@ import { useLang } from '../lib/i18n.js'
 import { exerciseNameText } from '../lib/format.js'
 import { EXIDX } from '../lib/exercises.js'
 import { switchGym } from '../lib/gym-inventory.js'
-import { menuSheet } from '../sheets.jsx'
+import { menuSheet, fitkatCheckinSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { ft } from './strings.js'
 import { kitSummary, placesOf } from './places.js'
 import { currentPlace, undecidedCount, swappedCount } from './place-swaps.js'
-import { saidOf } from './checkin.js'
+import { saidOf, checkinOf } from './checkin.js'
 import { todayISO } from '../lib/format.js'
 
 export default function PlaceBar() {
@@ -23,8 +23,13 @@ export default function PlaceBar() {
   useLang()
   const places = placesOf(S)
   const place = currentPlace(S)
-  const said = saidOf(S, todayISO(), ft)
-  if (!places.length && !said.length) return null
+  const today = todayISO()
+  const said = saidOf(S, today, ft)
+  // The check-in can be answered here, before any workout, and changed until one starts.
+  const checked = !!checkinOf(S, today)
+  const open = !S.active && !(S.workouts || []).some(w => w?.d === today)
+  const ask = open && !checked && S.dailyForm !== false
+  if (!places.length && !said.length && !ask && !(open && checked)) return null
   const pick = () => menuSheet({
     title: ft('Where are you training today?'),
     items: places.map(p => ({
@@ -44,7 +49,15 @@ export default function PlaceBar() {
       <span className="fk-place-pick-name">{place ? place.name : ft('Choose a place')}</span>
       <Icon name="chevronDown" />
     </button>}
-    {said.length > 0 && <div className="fk-place-note quiet"><span>{ft('Today: {0}.', said.join(', '))}</span></div>}
+    {ask && <button type="button" className="fk-place-note quiet" onClick={fitkatCheckinSheet}>
+      <span>{ft('How are you today?')}</span>
+      <span className="fk-link">{ft('Check in')}</span>
+    </button>}
+    {checked && open && <button type="button" className="fk-place-note quiet" onClick={fitkatCheckinSheet}>
+      <span>{said.length ? ft('Today: {0}.', said.join(', ')) : ft('Today: nothing off.')}</span>
+      <span className="fk-link dim">{ft('Change')}</span>
+    </button>}
+    {checked && !open && said.length > 0 && <div className="fk-place-note quiet"><span>{ft('Today: {0}.', said.join(', '))}</span></div>}
     {left > 0 && <button type="button" className="fk-place-note" onClick={() => nav('/swaps')}>
       <span>{ft('{0} exercises in your plan need a swap for {1}.', left, place.name)}</span>
       <span className="fk-link">{ft('Review')}</span>

@@ -39,6 +39,7 @@ import { ChallengesCard } from '../components/Challenges.jsx'
 import { isOn } from '../lib/modules.js'
 import { appName, overlayOn } from '../fitkat/brand.js'
 import PlaceBar from '../fitkat/PlaceBar.jsx'
+import FitkatRecovery from '../fitkat/SoreHint.jsx'
 
 // Home = what to do now + a quick glance. Deep charts & history live in Stats.
 export default function Home() {
@@ -233,7 +234,7 @@ export default function Home() {
     {on('motivation') && <WrappedHomeCard S={S} />}
 
     {/* What has rested and what is still recovering, kindly (lib/recovery-hint.js). */}
-    {on('health') && <RecoveryHint S={S} />}
+    {on('health') && (overlayOn() ? <FitkatRecovery S={S} /> : <RecoveryHint S={S} />)}
 
     {/* A deload week now or next, or a lighter week suggested (lib/deload-cycle.js). */}
     <DeloadCard S={S} />

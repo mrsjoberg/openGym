@@ -5,6 +5,7 @@ import { buildSessionEntries } from '../lib/session-start.js'
 import {
   TILES, formFromTiles, tilesFromForm, SORE_AREAS, cleanAreas, withSoreAreas, soreAreasOf, areasOfExercise,
   soreEntries, easierChanges, easierOffer, goEasierWhereSore, saidOf, sleepTileOf,
+  withPending, easePending, checkinOf, soreMusclesOf, soreHint,
 } from './checkin.js'
 
 const none = { sleep: null, energy: null, sore: null, stress: null }
@@ -111,6 +112,47 @@ describe('going easier where she is sore', () => {
     expect(goEasierWhereSore(s, 'load', ['chest'])).toBe(0)
     expect(s.active.lighter).toBeUndefined()
     expect(lighterChanges(s.active, 'load').length).toBe(5)
+  })
+})
+
+describe('said on Home, before a workout', () => {
+  const day = '2026-11-20'
+  const answered = (tiles, areas = []) => withPending(withSoreAreas(withForm({}, day, formFromTiles({ ...none, ...tiles }), 5), day, areas), day)
+  it('waits with the "go easier?" question until she starts, and reads back as she left it', () => {
+    const S = { dayForm: answered({ sore: 'lot', sleep: 'bit' }, ['legs']) }
+    expect(easePending(S, day)).toBe(true)
+    expect(checkinOf(S, day)).toEqual({ tiles: { sleep: 'bit', energy: null, sore: 'lot', stress: null }, areas: ['legs'] })
+    expect(readForm(S.dayForm[day])).toMatchObject({ sore: 5, sleep: 2 })          // openGym still reads the form
+    expect(easePending({ dayForm: withPending(S.dayForm, day, false) }, day)).toBe(false)
+    // Answering at the start goes through openGym's withForm, which drops the mark.
+    expect(easePending({ dayForm: withForm(S.dayForm, day, formFromTiles(none)) }, day)).toBe(false)
+    expect(easePending({}, day)).toBe(false)
+    expect(checkinOf({}, day)).toBe(null)
+    expect(withPending({}, day)).toEqual({})
+  })
+  it('marks the muscles of a sore area for the map, for that day only', () => {
+    const S = { dayForm: answered({ sore: 'bit' }, ['legs', 'core']) }
+    const m = soreMusclesOf(S, day)
+    expect(m).toMatchObject({ quadriceps: 'bit', hamstring: 'bit', gluteal: 'bit', calves: 'bit', abs: 'bit' })
+    expect(m.chest).toBeUndefined()
+    expect(soreMusclesOf(S, '2026-11-21')).toEqual({})
+    expect(soreMusclesOf({ dayForm: answered({ sleep: 'lot' }) }, day)).toEqual({})
+  })
+  it('gives Home a line when she is sore, saying whether today\'s session works that', () => {
+    const base = { workouts: [], dayForm: answered({ sore: 'bit' }, ['legs']) }
+    expect(soreHint(base, { today: day, routines: [lowerA] })).toEqual({ areas: ['legs'], hits: 5, planned: true })
+    expect(soreHint({ ...base, dayForm: answered({ sore: 'bit' }, ['chest']) }, { today: day, routines: [lowerA] })).toEqual({ areas: ['chest'], hits: 0, planned: true })
+    expect(soreHint(base, { today: day })).toEqual({ areas: ['legs'], hits: 0, planned: false })
+  })
+  it('keeps quiet when openGym\'s hint would: off, put away, training now, trained today, or not sore', () => {
+    const base = { workouts: [], dayForm: answered({ sore: 'bit' }, ['legs']) }
+    const at = { today: day, routines: [lowerA] }
+    expect(soreHint({ ...base, recoveryHint: false }, at)).toBe(null)
+    expect(soreHint({ ...base, recoveryHintDay: day }, at)).toBe(null)
+    expect(soreHint({ ...base, active: { entries: [] } }, at)).toBe(null)
+    expect(soreHint({ ...base, workouts: [{ d: day }] }, at)).toBe(null)
+    expect(soreHint({ workouts: [], dayForm: answered({ stress: 'lot' }) }, at)).toBe(null)
+    expect(soreHint(base, { today: '2026-11-21', routines: [lowerA] })).toBe(null)
   })
 })
 

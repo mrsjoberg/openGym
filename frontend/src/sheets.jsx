@@ -140,7 +140,7 @@ import { checkinMode, withForm, readForm, goLighter, canGoLighter, LIGHTER_KINDS
 // FitKat: its own check-in in place of the four scales, and going easier where she is sore.
 import { overlayOn } from './fitkat/brand.js'
 import FitkatCheckin from './fitkat/Checkin.jsx'
-import { withSoreAreas, goEasierWhereSore, markEased } from './fitkat/checkin.js'
+import { withSoreAreas, goEasierWhereSore, markEased, withPending, easePending, checkinOf, easierOffer, formFromTiles } from './fitkat/checkin.js'
 import { ft } from './fitkat/strings.js'
 import { sleepHoursOn } from './lib/vitals.js'
 import DailyCheckin from './components/DailyCheckin.jsx'
@@ -4008,7 +4008,8 @@ export function startFlow(routineIds, opts = {}) {
   // The daily-form check-in comes first (v1.4.5, lib/daily-form.js): only when switched on
   // (Settings → Workout), never with the Health module off, once a day.
   // FitKat asks unless it was switched off; openGym only once it was switched on.
-  const ask = overlayOn() ? S().dailyForm !== false && !readForm(S().dayForm?.[todayISO()]) : checkinMode(S(), todayISO())
+  // Answered from Home already (fitkat/PlaceBar.jsx): only whether to go easier is still to ask.
+  const ask = overlayOn() ? (S().dailyForm !== false && !readForm(S().dayForm?.[todayISO()])) || easePending(S(), todayISO()) : checkinMode(S(), todayISO())
   if (!opts.checked && ask) { dailyCheckinSheet(routineIds, opts); return }
   // The weigh-in is a setting (Settings → During a workout, issue #137): off goes straight
   // into the session with no body weight on it, same as "Start without weighing in".
@@ -4026,13 +4027,20 @@ function dailyCheckinSheet(routineIds, opts) {
   const sleep = MOBILE ? Promise.all([loadHealth(), nativePlatform()])
     .then(([h, platform]) => (h?.readVitals ? { hours: sleepHoursOn(h.vitals, today), platform } : null)).catch(() => null) : null
   const go = more => startFlow(routineIds, { ...opts, checked: true, ...more })
-  if (overlayOn()) return ui().openSheet(close => <FitkatCheckin preview={preview} sleep={sleep}
+  if (overlayOn()) {
+    const said = easePending(st, today) ? checkinOf(st, today) : null
+    if (said) {
+      const offer = easierOffer(preview, formFromTiles(said.tiles), said.tiles.sore ? said.areas : [])
+      if (!(offer.sore > 0 || offer.rough)) { update(s => { s.dayForm = withPending(s.dayForm, today, false) }); go({}); return }
+    }
+    return ui().openSheet(close => <FitkatCheckin preview={preview} sleep={said ? null : sleep} initial={said} startAt={said ? 'easier' : 'tiles'}
     onDone={({ form, lighter: kind, areas, soreOnly, keep }) => {
       close()
       update(s => { s.dayForm = withSoreAreas(withForm(s.dayForm, today, { ...form, lighter: kind }), today, areas); if (keep === false) s.dailyForm = false })
       go(kind ? { lighter: kind, soreAreas: soreOnly ? areas : null } : {})
     }}
-    onSkip={({ keep } = {}) => { close(); if (keep === false) update(s => { s.dailyForm = false }); go({}) }} />)
+    onSkip={({ keep } = {}) => { close(); update(s => { if (keep === false) s.dailyForm = false; s.dayForm = withPending(s.dayForm, today, false) }); go({}) }} />)
+  }
   ui().openSheet(close => <DailyCheckin lighter={lighter} sleep={sleep}
     onDone={({ form, lighter: kind }) => {
       close()
@@ -4040,6 +4048,19 @@ function dailyCheckinSheet(routineIds, opts) {
       go(kind ? { lighter: kind } : {})
     }}
     onSkip={() => { close(); go({}) }} />)
+}
+// FitKat: the check-in from Home, with no workout starting (fitkat/PlaceBar.jsx). It saves what she
+// said and marks the day, so the start asks only whether to go easier (fitkat/checkin.js withPending).
+export function fitkatCheckinSheet() {
+  const st = S()
+  const today = todayISO()
+  const preview = { entries: buildCombinedEntries(st, effectiveRoutineIds(st, today)).entries }
+  const said = checkinOf(st, today)
+  const sleep = MOBILE && !said ? Promise.all([loadHealth(), nativePlatform()])
+    .then(([h, platform]) => (h?.readVitals ? { hours: sleepHoursOn(h.vitals, today), platform } : null)).catch(() => null) : null
+  ui().openSheet(close => <FitkatCheckin home preview={preview} sleep={sleep} initial={said}
+    onDone={({ form, areas }) => { close(); update(s => { s.dayForm = withPending(withSoreAreas(withForm(s.dayForm, today, form), today, areas), today) }) }}
+    onSkip={() => close()} />)
 }
 // `opts` from the Apple Watch (lib/watch-sync.js): a session started there keeps the watch's id,
 // so the sets ticked on it find it, and its start time, however late the phone hears of it.

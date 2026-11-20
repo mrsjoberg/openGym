@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { MUSCLES, INERT, MUSCLE_NAME, levelsOf } from '../lib/muscles.js'
 import { t } from '../lib/i18n.js'
 import { regionLevel } from '../lib/body-geometry-level.js'
@@ -32,7 +32,7 @@ const isSel = (selected, slug) => (Array.isArray(selected) ? selected.includes(s
 // A muscle is drawn as several shapes (two forearms, six serratus slips, and again on the back):
 // every one takes a tap, but only one of them is the button a keyboard and a screen reader meet,
 // so the map has one "Forearms" and not fourteen (P4). `silent`: muscles the other view names.
-function View({ view, levels, onMuscle, selected, silent }) {
+function View({ view, levels, onMuscle, selected, silent, marks, markId }) {
   const heard = (slug, i) => !!onMuscle && i === 0 && !silent?.(slug)
   const activate = (event, slug) => {
     if (event.key !== 'Enter' && event.key !== ' ') return
@@ -58,6 +58,13 @@ function View({ view, levels, onMuscle, selected, silent }) {
         >
           <title>{t(MUSCLE_NAME[slug])}</title>
         </path>))}
+      {/* FitKat: muscles marked over the shading (today's soreness, fitkat/checkin.js soreMusclesOf),
+          hatched so it reads without colour. Taps pass through to the muscle underneath. */}
+      {marks && <>
+        <defs><pattern id={markId} patternUnits="userSpaceOnUse" width="14" height="14" patternTransform="rotate(45)"><rect className="bm-mark-line" width="5" height="14" /></pattern></defs>
+        {MUSCLES.map(slug => (marks[slug] ? (view.p[slug] || []).map((d, i) =>
+          <path key={'mark' + slug + i} className="bm-mark" d={d} style={{ fill: `url(#${markId})` }} aria-hidden="true" />) : null))}
+      </>}
     </svg>
   )
 }
@@ -70,15 +77,16 @@ function View({ view, levels, onMuscle, selected, silent }) {
  * to keep their semantic bands stable); omitting it preserves the balance behavior. `levels`
  * hands over ready-made steps instead (the live session map, lib/muscles.js sessionLevels).
  */
-export default function BodyMap({ load = {}, thresholds, levels: given, body = 'male', onMuscle, selected, className = '' }) {
+export default function BodyMap({ load = {}, thresholds, levels: given, body = 'male', onMuscle, selected, className = '', marks = null }) {
   const paths = useBodyPaths()
+  const uid = 'bmk' + useId().replace(/\W/g, '')
   const levels = given || levelsOf(load, thresholds)
   const g = paths && (paths[body] || paths.male)
   return (
     <div className={'bodymap ' + className}>
       {g ? <>
-        <View view={g.front} levels={levels} onMuscle={onMuscle} selected={selected} />
-        <View view={g.back} levels={levels} onMuscle={onMuscle} selected={selected} silent={slug => !!g.front.p[slug]?.length} />
+        <View view={g.front} levels={levels} onMuscle={onMuscle} selected={selected} marks={marks} markId={uid + 'f'} />
+        <View view={g.back} levels={levels} onMuscle={onMuscle} selected={selected} silent={slug => !!g.front.p[slug]?.length} marks={marks} markId={uid + 'b'} />
       </> : <div className="bm-ph" aria-hidden="true" />}
     </div>
   )

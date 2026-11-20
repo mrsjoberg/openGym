@@ -22,16 +22,19 @@ const hoursText = hours => { const h = Math.floor(hours), m = Math.round((hours 
  * `onDone({ form, lighter, areas, soreOnly, keep })`: `lighter` is 'load', 'sets' or null; `soreOnly`
  * says to ease just the exercises that work `areas`; `keep` false means she unticked "asked once
  * a day", so the check-in is to be switched off. `onSkip({ keep })` starts as planned.
+ * `home`: answered from Home with no workout starting: it saves and closes, and the "go easier?"
+ * question waits for the start. `initial` ({ tiles, areas }) and `startAt` open it on what she
+ * already said, which is how that question is put later.
  */
-export default function Checkin({ preview, sleep = null, onDone, onSkip }) {
-  const [tiles, setTiles] = useState(NONE)
-  const [areas, setAreas] = useState([])
-  const [step, setStep] = useState('tiles')
+export default function Checkin({ preview, sleep = null, initial = null, startAt = 'tiles', home = false, onDone, onSkip }) {
+  const [tiles, setTiles] = useState(initial?.tiles || NONE)
+  const [areas, setAreas] = useState(initial?.areas || [])
+  const [step, setStep] = useState(startAt)
   const [pick, setPick] = useState('planned')
   const [kind, setKind] = useState('load')
   const [keep, setKeep] = useState(true)
   const [night, setNight] = useState(null)
-  const [sleepTouched, setSleepTouched] = useState(false)
+  const [sleepTouched, setSleepTouched] = useState(!!initial)
   useEffect(() => {
     if (!sleep || typeof sleep.then !== 'function') return
     let gone = false
@@ -57,7 +60,7 @@ export default function Checkin({ preview, sleep = null, onDone, onSkip }) {
     if (key === 'sore') setAreas([])
   }
   const start = () => {
-    if (step !== 'easier' && (offer.sore > 0 || offer.rough)) { setStep('easier'); return }
+    if (!home && step !== 'easier' && (offer.sore > 0 || offer.rough)) { setStep('easier'); return }
     const eased = step === 'easier' && pick !== 'planned'
     onDone({ form, lighter: eased ? useKind : null, areas: soreAreas, soreOnly: eased && pick === 'sore', keep })
   }
@@ -77,7 +80,7 @@ export default function Checkin({ preview, sleep = null, onDone, onSkip }) {
       {['bit', 'lot'].map(l => <button key={l} type="button" className={'btn fk-outline' + (tiles.sore === l ? ' on' : '')} aria-pressed={tiles.sore === l}
         onClick={() => setTiles(t => ({ ...t, sore: l }))}>{ft(l === 'bit' ? 'A bit' : 'A lot')}</button>)}
     </div>
-    {areas.length > 0 && <p className="fk-ci-note">{(() => {
+    {areas.length > 0 && (preview?.entries || []).length > 0 && <p className="fk-ci-note">{(() => {
       const n = soreEntries(preview, areas).length
       return n ? ft('That touches {0} of today\'s {1} exercises. You can go easier on just those.', n, (preview?.entries || []).length)
         : ft('Nothing in today\'s session works that, so it runs as planned.')
@@ -111,7 +114,7 @@ export default function Checkin({ preview, sleep = null, onDone, onSkip }) {
 
   return <div className="fk-ci">
     <h3 className="fk-ci-h">{ft('Anything')} <em>{ft('off')}</em> {ft('today?')}</h3>
-    <p className="fk-ci-p">{ft('Tap what applies. Nothing off? Just start.')}</p>
+    <p className="fk-ci-p">{home ? ft('Tap what applies. Nothing off? Just save.') : ft('Tap what applies. Nothing off? Just start.')}</p>
     <div className="fk-ci-tiles">
       {TILES.map(t => {
         const level = tiles[t.key]
@@ -130,14 +133,14 @@ export default function Checkin({ preview, sleep = null, onDone, onSkip }) {
       })}
     </div>
     {night && <p className="fk-ci-p">{ft('{0} of sleep last night, from {1}.', hoursText(night.hours), night.platform === 'ios' ? 'Apple Health' : 'Health Connect')}</p>}
-    <button type="button" className="btn primary" onClick={start}>{ft('Start workout')}</button>
-    <label className="fk-ci-keep">
+    <button type="button" className="btn primary" onClick={start}>{home ? ft('Save') : ft('Start workout')}</button>
+    {!home && <label className="fk-ci-keep">
       <input type="checkbox" checked={keep} onChange={e => setKeep(e.target.checked)} />
       <span className={'fk-box' + (keep ? ' on' : '')} aria-hidden="true">{keep && <Icon name="check" />}</span>
       <span className="fk-ci-keep-t">{ft('Asked once a day')}</span>
       <span className={'fk-tag' + (keep ? ' fits' : '')}>{keep ? ft('On') : ft('Off')}</span>
-    </label>
+    </label>}
     {!keep && <p className="fk-ci-p" role="status">{ft('Turn this on in the settings menu if you want to continue having daily check-in.')}</p>}
-    <button type="button" className="fk-link dim" style={{ alignSelf: 'center' }} onClick={() => onSkip({ keep })}>{ft('Skip check-in')}</button>
+    <button type="button" className="fk-link dim" style={{ alignSelf: 'center' }} onClick={() => onSkip({ keep })}>{home ? ft('Not now') : ft('Skip check-in')}</button>
   </div>
 }
