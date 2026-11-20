@@ -137,6 +137,11 @@ import { queueRemaining, pinState } from './lib/queue.js'
 import { DAY_NOTE_TAGS, DAY_NOTE_LABEL, DAY_NOTE_ICON, dayNoteOf, dayNoteLine, canNoteDay, withDayNote } from './lib/day-notes.js'
 import { isOn } from './lib/modules.js'
 import { checkinMode, withForm, readForm, goLighter, canGoLighter, LIGHTER_KINDS } from './lib/daily-form.js'
+// FitKat: its own check-in in place of the four scales, and going easier where she is sore.
+import { overlayOn } from './fitkat/brand.js'
+import FitkatCheckin from './fitkat/Checkin.jsx'
+import { withSoreAreas, goEasierWhereSore, markEased } from './fitkat/checkin.js'
+import { ft } from './fitkat/strings.js'
 import { sleepHoursOn } from './lib/vitals.js'
 import DailyCheckin from './components/DailyCheckin.jsx'
 
@@ -4002,7 +4007,9 @@ export function DayNoteRow({ iso, note }) {
 export function startFlow(routineIds, opts = {}) {
   // The daily-form check-in comes first (v1.4.5, lib/daily-form.js): only when switched on
   // (Settings → Workout), never with the Health module off, once a day.
-  if (!opts.checked && checkinMode(S(), todayISO())) { dailyCheckinSheet(routineIds, opts); return }
+  // FitKat asks unless it was switched off; openGym only once it was switched on.
+  const ask = overlayOn() ? S().dailyForm !== false && !readForm(S().dayForm?.[todayISO()]) : checkinMode(S(), todayISO())
+  if (!opts.checked && ask) { dailyCheckinSheet(routineIds, opts); return }
   // The weigh-in is a setting (Settings → During a workout, issue #137): off goes straight
   // into the session with no body weight on it, same as "Start without weighing in".
   // Off in Settings → Workout, or with the Body module (Settings → Modules): straight into the session.
@@ -4019,6 +4026,13 @@ function dailyCheckinSheet(routineIds, opts) {
   const sleep = MOBILE ? Promise.all([loadHealth(), nativePlatform()])
     .then(([h, platform]) => (h?.readVitals ? { hours: sleepHoursOn(h.vitals, today), platform } : null)).catch(() => null) : null
   const go = more => startFlow(routineIds, { ...opts, checked: true, ...more })
+  if (overlayOn()) return ui().openSheet(close => <FitkatCheckin preview={preview}
+    onDone={({ form, lighter: kind, areas, soreOnly }) => {
+      close()
+      update(s => { s.dayForm = withSoreAreas(withForm(s.dayForm, today, { ...form, lighter: kind }), today, areas) })
+      go(kind ? { lighter: kind, soreAreas: soreOnly ? areas : null } : {})
+    }}
+    onSkip={() => { close(); go({}) }} />)
   ui().openSheet(close => <DailyCheckin lighter={lighter} sleep={sleep}
     onDone={({ form, lighter: kind }) => {
       close()
@@ -4029,7 +4043,7 @@ function dailyCheckinSheet(routineIds, opts) {
 }
 // `opts` from the Apple Watch (lib/watch-sync.js): a session started there keeps the watch's id,
 // so the sets ticked on it find it, and its start time, however late the phone hears of it.
-export function beginWorkout(routineIds, bw, { id = null, start = null, lead = null, lighter = null } = {}) {
+export function beginWorkout(routineIds, bw, { id = null, start = null, lead = null, lighter = null, soreAreas = null } = {}) {
   const st = S()
   const built = buildCombinedEntries(st, routineIds)
   const { routineIds: rids, routines } = built
@@ -4054,8 +4068,9 @@ export function beginWorkout(routineIds, bw, { id = null, start = null, lead = n
   // "Go lighter" from the check-in (lib/daily-form.js): today's numbers only, said so.
   if (lighter) {
     let n = 0
-    update(s => { n = goLighter(s, lighter) })
-    if (n) toast(lighter === 'load' ? t('Lighter day: 10% off the weights. Progression sits this one out.') : t('Lighter day: one set fewer per exercise. Progression sits this one out.'))
+    update(s => { n = soreAreas ? goEasierWhereSore(s, lighter, soreAreas) : goLighter(s, lighter); if (n && !soreAreas && overlayOn()) markEased(s.active, lighter) })
+    if (n && soreAreas) toast(ft('Easier on {0} exercises today. They sit out of progression.', n))
+    else if (n) toast(lighter === 'load' ? t('Lighter day: 10% off the weights. Progression sits this one out.') : t('Lighter day: one set fewer per exercise. Progression sits this one out.'))
   }
   useUI.getState().stopRest()
   navToWorkout()

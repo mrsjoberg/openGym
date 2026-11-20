@@ -720,7 +720,7 @@ export default function Settings({ page = null, find = null, via = null, entryKe
         {/* The daily-form check-in (v1.4.5, lib/daily-form.js): asked once on its own, then this. */}
         {on('health') && <Row icon="moon" iconTint="var(--indigo)" title={t('Daily check-in')}
           subtitle={t('Sleep, energy, soreness and stress in four taps before you train. On a rough day it offers to go lighter.')}>
-          <Switch aria-label={t('Daily check-in')} checked={S.dailyForm === true} onChange={v => update(s => { s.dailyForm = v })} />
+          <Switch aria-label={t('Daily check-in')} checked={overlayOn() ? S.dailyForm !== false : S.dailyForm === true} onChange={v => update(s => { s.dailyForm = v })} />
         </Row>}
         {(wakeOK || !MOBILE) && (
           <Row icon="phoneScreen" iconTint="var(--yellow)" title={t('Keep screen awake')}

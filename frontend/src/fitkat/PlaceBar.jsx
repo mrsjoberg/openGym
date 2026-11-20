@@ -13,6 +13,8 @@ import Icon from '../components/Icon.jsx'
 import { ft } from './strings.js'
 import { kitSummary, placesOf } from './places.js'
 import { currentPlace, undecidedCount, swappedCount } from './place-swaps.js'
+import { saidOf } from './checkin.js'
+import { todayISO } from '../lib/format.js'
 
 export default function PlaceBar() {
   const S = useStore(s => s.S)
@@ -21,7 +23,8 @@ export default function PlaceBar() {
   useLang()
   const places = placesOf(S)
   const place = currentPlace(S)
-  if (!places.length) return null
+  const said = saidOf(S, todayISO(), ft)
+  if (!places.length && !said.length) return null
   const pick = () => menuSheet({
     title: ft('Where are you training today?'),
     items: places.map(p => ({
@@ -36,11 +39,12 @@ export default function PlaceBar() {
   const left = place ? undecidedCount(S, S.routines, place) : 0
   const swapped = place ? swappedCount(S, S.routines, place) : 0
   return <div className="fk-placebar">
-    <button type="button" className="fk-place-pick" onClick={pick} aria-label={ft('Training at {0}, change place', place ? place.name : '')}>
+    {places.length > 0 && <button type="button" className="fk-place-pick" onClick={pick} aria-label={ft('Training at {0}, change place', place ? place.name : '')}>
       <span className="fk-eyebrow">{ft('Training at')}</span>
       <span className="fk-place-pick-name">{place ? place.name : ft('Choose a place')}</span>
       <Icon name="chevronDown" />
-    </button>
+    </button>}
+    {said.length > 0 && <div className="fk-place-note quiet"><span>{ft('Today: {0}.', said.join(', '))}</span></div>}
     {left > 0 && <button type="button" className="fk-place-note" onClick={() => nav('/swaps')}>
       <span>{ft('{0} exercises in your plan need a swap for {1}.', left, place.name)}</span>
       <span className="fk-link">{ft('Review')}</span>
@@ -56,9 +60,11 @@ export default function PlaceBar() {
 export function SwappedNote({ entry }) {
   const place = useStore(s => currentPlace(s.S))
   const from = EXIDX[entry?.swappedFrom]
-  if (!from) return null
+  const eased = entry?.eased === 'load' ? ft('Eased 10%') : entry?.eased === 'sets' ? ft('One set fewer') : null
+  if (!from && !eased) return null
   return <div className="fk-swapped-note">
-    <span className="fk-tag">{place ? ft('Swapped for {0}', place.name) : ft('Swapped')}</span>
-    <span>{ft('was {0}', exerciseNameText(from))}</span>
+    {from && <span className="fk-tag">{place ? ft('Swapped for {0}', place.name) : ft('Swapped')}</span>}
+    {from && <span>{ft('was {0}', exerciseNameText(from))}</span>}
+    {eased && <span className="fk-tag fits">{eased}</span>}
   </div>
 }
