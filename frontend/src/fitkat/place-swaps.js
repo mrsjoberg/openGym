@@ -161,12 +161,21 @@ export function routineAtPlace(S, routine, place) {
   const rows = list(routine?.ex)
   if (!place) return rows.map(cfg => ({ cfg, ex: EXIDX[cfg.id] || null, state: 'fits', declined: [] }))
   const held = rows.map(cfg => cfg.id)
-  return rows.map(cfg => {
+  // No replacement twice in one session: what another exercise here already runs as, and what an
+  // earlier one is being offered right now, is not offered again. The next step is taken.
+  const approved = rows.map(cfg => decisionOf(S, place.id, routine.id, cfg.id)?.to || null)
+  const offered = []
+  return rows.map((cfg, i) => {
     const ex = EXIDX[cfg.id] || null
     const any = decisionOf(S, place.id, routine.id, cfg.id)
     // A limit of hers comes first: its ladder, then the kit.
     const limit = ex ? limitOn(S, cfg.id) : null
-    if (limit) return limitRow(S, cfg, ex, place, held, limit, any && any.lim === limit.area ? any : null)
+    if (limit) {
+      const taken = [...held, ...approved.filter((id, j) => id && j !== i), ...offered]
+      const row = limitRow(S, cfg, ex, place, taken, limit, any && any.lim === limit.area ? any : null)
+      if (row.state === 'pending' && !row.suggestion.keep) offered.push(row.suggestion.ex.id)
+      return row
+    }
     const d = any && !any.lim ? any : null
     const declined = d?.declined || []
     // Her own exercises and anything the catalogue does not know are never second-guessed.

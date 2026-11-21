@@ -195,6 +195,18 @@ describe('a routine under a limit', () => {
     expect(at(s)).toMatchObject({ state: 'skipped', rest: true })
     expect(routineForPlace(s, routine, place).ex.map(e => e.id)).toEqual([BENCH])
   })
+  it('never offers two exercises of one session the same replacement', () => {
+    const incline = byName('barbell incline bench press')
+    const two = { id: 'r2', name: 'Push', ex: [{ id: BENCH, sets: 3, reps: 8 }, { id: incline, sets: 3, reps: 8 }] }
+    const s = S(lim('shoulder', 'avoid'))
+    const first = routineAtPlace(s, two, place).map(r => r.suggestion.ex.id)
+    expect(first[0]).not.toBe(first[1])
+    // And once the first is approved, the second still does not get it.
+    s.placeSwaps = withApproved({}, swapKey(place.id, 'r2', BENCH), first[0], 1, 'shoulder')
+    const rows = routineAtPlace(s, two, place)
+    expect(rows[0].state).toBe('approved')
+    expect(rows[1].suggestion.ex.id).not.toBe(first[0])
+  })
   it('leaves the routine as written until she has decided', () => {
     expect(routineForPlace(S(lim('knee', 'easy')), routine, place)).toBe(routine)
   })
