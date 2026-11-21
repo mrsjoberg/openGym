@@ -10,6 +10,9 @@
 // while resting something still takes exercises out of that routine: take the limit away and the
 // routine runs as written again.
 //
+// Suggestions come from a pool of about 300 known exercises, each read one by one by an AI
+// reviewer for the areas it touches (limits-data.js POOL), not from the whole library.
+//
 // An exercise is suggested only if her place has the kit for it, it is not already in the session,
 // it does not work an area she said is sore today, and it leaves her limits alone: it neither loads
 // nor involves any of them, and it is not from the part of the body around an area she rests. That
@@ -20,7 +23,7 @@ import { defaultConfig } from '../lib/history.js'
 import { todayISO } from '../lib/format.js'
 import { SUBSTITUTE_FAMILIES } from '../lib/exercise-substitutes.js'
 import { STARTER_PLANS } from '../../../api/coach/core/starter-plans.js'
-import { areasTouched, limitsOf, REGION } from './limits.js'
+import { limitsOf, poolTouches, POOL_IDS, REGION } from './limits.js'
 import { areasOfExercise, checkinOf } from './checkin.js'
 import { fitsPlace, kitOfPlace, routineAtPlace, NOT_A_LIFT, NEEDS_BALL } from './place-swaps.js'
 
@@ -60,7 +63,7 @@ function lostIn(S, routine, place) {
 }
 const sparesHer = (id, mine) => {
   const ex = EXIDX[id]
-  return !!ex && !EVERYWHERE.has(ex.bp) && !mine.around.has(ex.bp) && !areasTouched(id).some(a => mine.areas.includes(a))
+  return !!ex && !EVERYWHERE.has(ex.bp) && !mine.around.has(ex.bp) && !poolTouches(id).some(a => mine.areas.includes(a))
 }
 
 /**
@@ -79,7 +82,8 @@ export function fillSuggestions(S, routine, place, { n = 8, today = todayISO() }
   const { equipment } = kitOfPlace(place)
   const hasBall = equipment.includes('stability ball') || equipment.includes('bosu ball')
   const found = []
-  for (const c of Object.values(EXIDX)) {
+  for (const id of POOL_IDS) {
+    const c = EXIDX[id]
     if (!c || !c.n || running.has(c.id) || !KINDS.has(c.cat)) continue
     const rank = targets.has(c.tg) ? 3 : parts.has(c.bp) ? 2 : c.bp === 'waist' ? 1 : 0
     if (NOT_A_LIFT.test(c.n) || /form check/i.test(c.n) || (!hasBall && NEEDS_BALL.test(c.n))) continue
@@ -113,7 +117,7 @@ export function fillEntries(S, routine, place, taken = new Set()) {
   if (!add.length) return []
   const { lost, mine } = lostIn(S, routine, place)
   if (!lost.length) return []
-  return add.filter(id => EXIDX[id] && !taken.has(id) && sparesHer(id, mine) && fitsPlace(EXIDX[id], place)).map(id => {
+  return add.filter(id => EXIDX[id] && POOL_IDS.includes(id) && !taken.has(id) && sparesHer(id, mine) && fitsPlace(EXIDX[id], place)).map(id => {
     // A fresh config for it, without a starting weight: it starts from its own history, or light.
     const { weight, ...fresh } = defaultConfig(id)
     return { id, ...fresh, added: true }

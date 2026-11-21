@@ -61,4 +61,11 @@ with open(out, 'w') as f:
     f.write('export const FLAGS = ' + js(flags) + '\n')
     f.write('// TOUCHES[exerciseId] is the areas an exercise involves without loading them, as a string of area letters.\n')
     f.write('export const TOUCHES = ' + js(touches) + '\n')
+    # The fill-in pool: exercises a reviewer read one by one (fill-pool.json: the areas each touches, by that
+    # reading). An area counts if the reviewer or the rules say so.
+    read = json.load(open(os.path.join(HERE, 'fill-pool.json')))
+    pool = {i: ''.join(sorted({CODE[a] for a in areas} | {CODE[a] for a, v in V.TAGS[i]['limits'].items() if v})) for i, areas in sorted(read.items()) if i in V.EX}
+    f.write('// POOL[exerciseId] is every area an exercise of the fill-in pool touches, as a string of area letters. Only\n')
+    f.write('// these exercises are suggested for "Build your own": each was read one by one by an AI reviewer.\n')
+    f.write('export const POOL = ' + js(pool) + '\n')
 print('flagged exercises', len(flags), '| lists', len(lists), '| reasons', len(whys), '| bytes', os.path.getsize(out))

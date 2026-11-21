@@ -138,6 +138,104 @@ def tag(e):
     if part == 'neck' or T == 'levator scapulae' or has('neck'): put('neck', 2)
     if T == 'traps' or re.search(r'shrug|upright row', n) or 'sternocleidomastoid' in S: put('neck', 1)
     if re.search(r'sit.?up|crunch', n) and re.search(r'behind (the )?head|hands behind', n): put('neck', 1)
+    # ---- what an exercise involves without it being the point (tag review, 21 Nov). All level 1: never flagged
+    # for a ladder, but not something to add to a session while she rests that area. The test for each rule is
+    # whether someone told to rest the area would be told off for doing the exercise.
+    if not gentle:
+        legs_only = T in LEG_TARGETS and not (has('hinge') or has('squat') or has('lunge'))
+        off_hands = bool(re.search(r'hip thrust|glute bridge|hip bridge|between (the )?(feet|legs|knees|ankles)|ankle weight|on (the )?(lap|hips|knees|thighs)|around|vest|belt squat', n))
+        free = eq in ('barbell', 'olympic barbell', 'ez barbell', 'trap bar', 'dumbbell', 'kettlebell', 'medicine ball', 'weighted', 'sandbag', 'weight plate', 'landmine')
+        pulled = eq in ('cable', 'band', 'resistance band', 'suspension trainer', 'rope') and not legs_only
+        machine_arms = eq in ('leverage machine', 'smith machine', 'assisted') and part in UPPER_PARTS
+        # a load held in, hanging from or pulled by the hands goes through the wrist, elbow and shoulder
+        if ((free and not (legs_only and eq == 'weighted')) or pulled or machine_arms) and not off_hands:
+            for a in ('wrist', 'elbow', 'shoulder'): put(a, 1)
+        # body weight through the hands or forearms, or hanging from them
+        if has('hands') or has('forearm_support') or re.search(r'plank|push.?up|\bdips?\b|handstand|crawl|\bbear\b|crab', n):
+            for a in ('elbow', 'shoulder', 'lower back'): put(a, 1)
+            if not has('forearm_support'): put('wrist', 1)
+        if re.search(r'hang|pull.?up|chin.?up|toes to bar|captain|muscle.?up|skin the cat|monkey|rope climb|inverted row|body row', n):
+            for a in ('wrist', 'elbow', 'shoulder'): put(a, 1)
+        # a held bent-over or hinged position
+        if has('bentover') or re.search(r'bent.?over|good morning|romanian|stiff.?leg|kickback.*bent|reverse fly|rear delt (raise|fly)', n) and upright and not re.search(r'chest support|incline|seated|lying|prone|machine|lever', n):
+            put('hip', 1); put('lower back', 1)
+        # standing or walking under a load
+        if upright and free and (has('squat') or has('lunge') or has('overhead') or re.search(r'carry|farmer|walk|step.?up|suitcase|standing', n)):
+            put('lower back', 1)
+        if re.search(r'carry|farmer|suitcase|yoke|sled|prowler|walking', n):
+            for a in ('hip', 'knee', 'ankle', 'lower back'): put(a, 1)
+        # the trunk: sit-ups pull on the hip flexors and the neck, rows and bridges hold the back
+        if re.search(r'sit.?up|v.?up|jack.?knife|toes to bar|roll.?out|ab wheel|dragon flag', n): put('hip', 1); put('neck', 1)
+        if re.search(r'crunch', n): put('neck', 1)
+        if has('bridge') or has('row') or re.search(r'leg press|hack squat', n): put('lower back', 1)
+        if has('legraise'): put('lower back', 1)
+        # standing leg work goes through the ankle, kneeling through the knee, most leg work through the knee and hip
+        if legs and upright and not re.search(r'curl|extension|machine|lever|lying|seated', n): put('ankle', 1); put('knee', 1); put('hip', 1)
+        if T == 'calves' and upright: put('knee', 1)
+        # ---- second pass, from what the reviewers found the first rules missed (pool and first sample half)
+        handless = eq in ('body weight', 'leverage machine', 'sled machine', 'smith machine', 'assisted', 'stability ball', 'bosu ball', 'roller',
+                          'stationary bike', 'elliptical machine', 'stepmill machine', 'skierg machine', 'upper body ergometer')
+        # anything else is held in the hands: a mace, a tyre, a wheel, a rope, a hammer
+        if not handless and not free and not pulled and eq not in ('cable', 'band', 'resistance band', 'suspension trainer', 'rope') and not off_hands and not legs_only:
+            for a in ('wrist', 'elbow', 'shoulder'): put(a, 1)
+        # a bar or pads across the shoulders
+        on_back = (eq in ('barbell', 'olympic barbell', 'smith machine') and (has('squat') or has('lunge') or re.search(r'good morning|calf raise|step.?up', n)) and not re.search(r'front|zercher|hack|jefferson|deadlift|overhead|goblet|landmine', n)) \
+            or (eq in ('leverage machine', 'sled machine', 'smith machine') and re.search(r'hack squat|standing calf|calf raise|squat', n) and not re.search(r'seated|leg press|lying|belt', n))
+        if on_back:
+            for a in ('neck', 'shoulder', 'lower back'): put(a, 1)
+        if eq == 'smith machine' and (has('hinge') or has('squat') or has('lunge') or has('row')): put('shoulder', 1); put('elbow', 1); put('wrist', 1)
+        if eq in ('leverage machine', 'smith machine', 'trap bar') and has('hinge'):
+            for a in ('wrist', 'elbow', 'shoulder', 'ankle'): put(a, 1)
+        # on hands and knees, or leaning on a wheel or straps
+        if re.search(r'quadruped|bird.?dog|all fours|donkey kick|fire hydrant|kneeling.*kick|kick.*kneeling|kicks? leg|bent leg kickback|kneeling.*(extension|push)', n) and T not in ('triceps',) or re.search(r'roll.?out|rollerout|ab wheel|ab roller|fallout|body saw|body.?up', n):
+            for a in ('wrist', 'elbow', 'shoulder', 'lower back'): put(a, 1)
+        if re.search(r'roll.?out|rollerout|ab wheel|ab roller|fallout|body saw', n): put('hip', 1); put('knee', 1)
+        if eq == 'suspension trainer' or re.search(r'inverted row|body row|bench pull|exercise ball|stability ball|pullover', n): put('lower back', 1)
+        if re.search(r'inverted row|body row|bench pull', n): put('hip', 1)
+        # pressing or pushing on the feet
+        if upright and (has('overhead') or re.search(r'standing.*press|press.*standing|block press', n)): put('lower back', 1)
+        if re.search(r'push press|jerk|thruster|tire flip|tyre|sled|prowler|judo|skier|windmill|wood.?chop|180|mountain climber|climber', n):
+            for a in ('hip', 'knee', 'ankle', 'lower back'): put(a, 1)
+        if re.search(r'tire flip|tyre|sled|prowler', n):
+            for a in ('wrist', 'elbow', 'shoulder'): put(a, 1)
+        # bent over without the words for it, and every squat and stand-up
+        if upright and (re.search(r'rear delt|rear fly|concentration curl|landmine row', n) or (T == 'triceps' and re.search(r'kickback', n)) or (has('row') and free and not re.search(r'upright|seated|chest support|incline|lying|prone|supported', n))):
+            put('hip', 1); put('lower back', 1)
+        if has('squat') or re.search(r'stand.?up|step.?up', n): put('lower back', 1)
+        # the neck: held weights around the head, sit-ups, lifting the chest off the floor
+        if re.search(r'halo|\bmace\b|arm blaster|otis|sit.?up|cocoon|russian twist|handstand|headstand|windmill|hyperextension|back extension|superman|\bw raise|prone', n): put('neck', 1)
+        if re.search(r'russian twist|twist', n) and part == 'waist': put('hip', 1)
+        # ---- third pass, from the second sample half. These follow the conventions written into the reviewers'
+        # brief: toes on the floor in a push-up or plank, standing while holding a load, feet anchored, a band at the ankle.
+        if has('hands') or re.search(r'plank|push.?up|press.?up|wall walk|planche|diamond press|floor fly|body saw|fallout', n):
+            put('ankle', 1)
+            if re.search(r'crawl|\bbear\b|planche|pike|side plank|wall walk', n): put('hip', 1); put('knee', 1)
+        if upright and (free or pulled) and part in UPPER_PARTS and not re.search(r'bench|incline|decline|preacher|kneeling|spider|chest support', n): put('lower back', 1)
+        if re.search(r'larsen|v.?sit|air bike|in.?out|toe tap|pallof|anti.?rotation|hollow', n): put('lower back', 1); put('hip', 1)
+        if re.search(r'v.?sit|air bike|toe tap', n): put('neck', 1)
+        if re.search(r'v.?sit|table top|\bcrab\b|kneeling glute|l.?sit|in.?out leg raise|parallel bars|dip bars?|sliding|slider|towel|floor fly|on a chair', n) and eq == 'body weight':
+            for a in ('wrist', 'elbow', 'shoulder'): put(a, 1)
+        if re.search(r'sliding|slider|towel|floor fly', n) and eq == 'body weight': put('lower back', 1); put('knee', 1); put('ankle', 1)
+        if eq in ('band', 'resistance band', 'cable') and re.search(r'hip extension|abduction|adduction|kickback|side step|lateral walk|monster|leg (raise|lift|curl|extension)|foot|ankle', n): put('ankle', 1); put('knee', 1)
+        if re.search(r'roman chair|45 degrees?|back extension|glute.?ham|\bghd\b|hyperextension|nordic|ab coaster|seated calf|sit.?up', n): put('knee', 1); put('ankle', 1)
+        if re.search(r'(stability|exercise) ball', n) and re.search(r'press|fly|pullover|extension|curl', n) and part in UPPER_PARTS: put('hip', 1); put('knee', 1)
+        if has('squat') or has('lunge') or re.search(r'stand.?up|step.?up|step.?down', n): put('ankle', 1); put('lower back', 1)
+        # ---- fourth pass, from the first fresh sample (16% of exercises still had a missed area, 1% a loaded one)
+        arms = lambda: [put(x, 1) for x in ('wrist', 'elbow', 'shoulder')]
+        if free and re.search(r'hip thrust|glute bridge|hip bridge', n): arms()                       # the hands steady the weight on the hips
+        if eq in ('cable', 'band', 'resistance band') and re.search(r'stand.?up|calf raise|chair|squat|lunge|step', n): arms(); put('lower back', 1)
+        if T == 'calves' and upright and (free or eq in ('band', 'resistance band', 'cable')): put('lower back', 1)
+        if re.search(r'reverse hyper|inverted|dragon flag|lying leg raise|leg raise.*bench|bench.*leg raise|swimmer|incline reverse', n): arms()
+        if re.search(r'standing', n) and part == 'waist':
+            for x in ('ankle', 'knee', 'hip', 'lower back'): put(x, 1)
+        if re.search(r'air bike|jack.?knife|knee tuck|pike', n): put('knee', 1); put('ankle', 1)
+        if eq == 'suspension trainer' or re.search(r'strongman|\baxle\b|wheelbarrow|\byoke\b|atlas|sandbag|\bkeg\b|\blog\b|\bstone\b', n):
+            for x in ('wrist', 'elbow', 'shoulder', 'lower back', 'hip', 'knee', 'ankle'): put(x, 1)
+        if re.search(r'front rack|zercher|clean grip|side ben[dt]|swimmer|lower back curl|head up|cobra', n): put('neck', 1)
+        if has('row') and upright and (free or pulled) and not re.search(r'upright|chest support|incline|lying|prone|supported', n): put('hip', 1); put('lower back', 1)
+        if re.search(r'(standing|cable|kneeling).*crunch|crunch.*(standing|cable|kneeling)', n): put('hip', 1)
+        if re.search(r'calf press|seated.*calf|calf.*seated', n): put('knee', 1)
+        if re.search(r'seated|sitting', n) and (free or pulled) and part in UPPER_PARTS and not re.search(r'bench|incline|support|preacher|lying|machine|lever', n): put('lower back', 1)
     # ---- impact reaches the joints it lands through
     if impact >= 2:
         for a in ('knee', 'hip', 'ankle'): put(a, 2)

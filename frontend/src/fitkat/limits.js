@@ -22,7 +22,7 @@
 //
 // The reasons are coaching convention. No physiotherapist has verified them.
 import { EXIDX } from '../lib/exercises.js'
-import { FLAGS, LISTS, WHYS, TOUCHES } from './limits-data.js'
+import { FLAGS, LISTS, WHYS, TOUCHES, POOL } from './limits-data.js'
 
 const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v)
 
@@ -78,6 +78,11 @@ export const areasLoaded = exId => AREAS.filter(a => FLAGS[exId]?.[CODE[a]] !== 
 
 /** The areas an exercise loads or merely involves: everything it does not leave alone. */
 export const areasTouched = exId => AREAS.filter(a => FLAGS[exId]?.[CODE[a]] !== undefined || (TOUCHES[exId] || '').includes(CODE[a]))
+
+/** The exercises that may be suggested as fill-ins: each was read one by one (scripts/fitkat/limits). */
+export const POOL_IDS = Object.keys(POOL)
+/** The areas a pool exercise touches, by the reviewer's reading or by the rules. */
+export const poolTouches = exId => AREAS.filter(a => (POOL[exId] || '').includes(CODE[a]))
 
 // The parts of the body (the catalogue's `bodyPart`) that sit around each area. Used only for what
 // may be ADDED to a session while she rests an area: the tags are rule-derived and miss things, so
