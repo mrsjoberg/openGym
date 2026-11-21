@@ -10,6 +10,8 @@ import { EXIDX } from '../lib/exercises.js'
 import { switchGym } from '../lib/gym-inventory.js'
 import { menuSheet, fitkatCheckinSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
+import { limitsOf } from './limits.js'
+import { limitTag } from './Limits.jsx'
 import { ft } from './strings.js'
 import { kitSummary, placesOf } from './places.js'
 import { currentPlace, undecidedCount, swappedCount } from './place-swaps.js'
@@ -73,11 +75,17 @@ export default function PlaceBar() {
 export function SwappedNote({ entry }) {
   const place = useStore(s => currentPlace(s.S))
   const from = EXIDX[entry?.swappedFrom]
+  // Here because of a limit (limits.js): say which, and to take it slowly.
+  // The mode alone is read from the store: a selector must hand back the same value while nothing changed.
+  const mode = useStore(s => (entry?.limit && limitsOf(s.S).find(l => l.area === entry.limit)?.mode) || null)
+  const limit = mode ? { area: entry.limit, mode } : null
   const eased = entry?.eased === 'load' ? ft('Eased 10%') : entry?.eased === 'sets' ? ft('One set fewer') : null
-  if (!from && !eased) return null
+  if (!from && !eased && !limit) return null
   return <div className="fk-swapped-note">
-    {from && <span className="fk-tag">{place ? ft('Swapped for {0}', place.name) : ft('Swapped')}</span>}
+    {limit ? <span className="fk-tag">{limitTag(limit)}</span>
+      : from && <span className="fk-tag">{place ? ft('Swapped for {0}', place.name) : ft('Swapped')}</span>}
     {from && <span>{ft('was {0}', exerciseNameText(from))}</span>}
+    {limit && <span>{from ? ft('Slow, and start light.') : ft('Lighter and slower.')}</span>}
     {eased && <span className="fk-tag fits">{eased}</span>}
   </div>
 }

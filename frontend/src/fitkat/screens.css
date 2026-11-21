@@ -119,3 +119,23 @@
 .bm-mark-line{fill:var(--rose-deep)}
 .fk-sore-note{display:flex;gap:10px;align-items:flex-start;margin-top:10px;font-size:.8125rem;line-height:1.5;color:var(--label-2)}
 .fk-sore-swatch{flex:none;width:14px;height:14px;margin-top:3px;border:1px solid var(--rose-deep);background:repeating-linear-gradient(45deg,var(--rose-deep) 0 2px,transparent 2px 5px)}
+
+/* Injuries and limits (Limits.jsx) */
+.fk-area-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.fk-area{display:flex;flex-direction:column;justify-content:center;gap:3px;min-height:70px;padding:10px 12px;border-radius:2px;text-align:start;box-shadow:inset 0 0 0 1px var(--sep)}
+.fk-area.on{background:var(--acc);color:var(--on-acc);box-shadow:none}
+.fk-area-name{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.9375rem;font-weight:600}
+.fk-area-hint{font-size:.75rem;line-height:1.35;color:var(--label-2)}
+.fk-area.on .fk-area-hint{color:var(--on-acc);opacity:.85}
+.fk-treat{display:flex;flex-direction:column;gap:10px;padding:14px 0 16px;border-bottom:1px solid var(--sep)}
+.fk-treat h2{font-family:var(--ff-display);font-weight:500;font-size:1.5rem;line-height:1.15}
+.fk-treat .btn{min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.fk-rest{display:flex;flex-direction:column;gap:10px;padding:12px 14px;background:var(--sage)}
+.fk-rest p{color:var(--label-2);font-size:.8125rem;line-height:1.5}
+.fk-rest .fk-rest-q{color:var(--label);font-size:.875rem;font-weight:600;line-height:1.4}
+.fk-limit{display:flex;flex-direction:column;padding:8px 0 6px;border-bottom:1px solid var(--sep)}
+.fk-limit-top{display:flex;align-items:baseline;gap:12px;min-height:44px}
+.fk-limit-top .fk-link{margin-inline-start:auto}
+.fk-limit-name{font-family:var(--ff-display);font-weight:500;font-size:1.5rem;line-height:1.1}
+.fk-limit-row{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px;border-top:1px solid var(--sep);font-size:.8125rem}
+.fk-limit .fk-treat{border-bottom:0;padding-bottom:6px}

@@ -2,6 +2,9 @@
 // approves or turns down. Two refusals and the question becomes whether to skip it there. Nothing
 // in a routine changes until she has approved it; every button here only writes a decision
 // (place-swaps.js), and the routines themselves are never rewritten.
+//
+// An exercise that loads one of her limits (limits.js) is reviewed here too, and says so: the next
+// step of its ladder with the reason it asks less of the joint, or "Keep it, easier".
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useLang } from '../lib/i18n.js'
@@ -13,8 +16,10 @@ import { ft } from './strings.js'
 import { placesOf } from './places.js'
 import {
   currentPlace, reviewList, undecidedCount, approveAll, suggestSwaps, swapKey,
-  withApproved, withDeclined, withSkipped, withCleared,
+  withApproved, withDeclined, withSkipped, withCleared, withKept,
 } from './place-swaps.js'
+import { AREA_LABEL } from './limits.js'
+import { limitTag } from './Limits.jsx'
 
 const nameOf = ex => (ex ? exerciseNameText(ex) : '')
 // Why this one: what it shares with the exercise it stands in for, and what it uses.
@@ -27,6 +32,9 @@ const reason = (row, s) => [
 function Row({ S, place, routine, row, write }) {
   const key = swapKey(place.id, routine.id, row.cfg.id)
   const from = nameOf(row.ex)
+  // A row about a limit: its decisions carry the area, and its reasons come from the ladder.
+  const lim = row.limit?.area
+  const area = lim ? ft(AREA_LABEL[lim]).toLowerCase() : ''
   // "No, let me choose": more of what the place can do for the same muscle, hers to pick from.
   const choose = () => {
     const held = routine.ex.map(e => e.id)
@@ -37,33 +45,41 @@ function Row({ S, place, routine, row, write }) {
     })
   }
   if (row.state === 'approved') return <div className="fk-swap done">
-    <div className="fk-swap-names"><span className="fk-swap-from">{from}</span><span className="fk-swap-to">{nameOf(row.to)}</span></div>
+    <div className="fk-swap-names">{lim && <span className="fk-tag">{limitTag(row.limit)}</span>}
+      {row.keep ? <><span className="fk-swap-to">{from}</span><span className="fk-prog-about">{ft('Kept, easier')}</span></>
+        : <><span className="fk-swap-from">{from}</span><span className="fk-swap-to">{nameOf(row.to)}</span></>}</div>
     <span className="fk-tag fits"><Icon name="check" /> {ft('Approved')}</span>
     <button type="button" className="fk-link dim" onClick={() => write(m => withCleared(m, key))}>{ft('Undo')}</button>
   </div>
   if (row.state === 'skipped') return <div className="fk-swap done">
-    <div className="fk-swap-names"><span className="fk-swap-to">{from}</span><span className="fk-prog-about">{ft('Skipped at {0}', place.name)}</span></div>
-    <button type="button" className="fk-link dim" onClick={() => write(m => withCleared(m, key))}>{ft('Restore')}</button>
+    <div className="fk-swap-names">{lim && <span className="fk-tag">{limitTag(row.limit)}</span>}<span className="fk-swap-to">{from}</span>
+      <span className="fk-prog-about">{row.rest ? ft('Skipped: you were told to rest your {0}', area) : ft('Skipped at {0}', place.name)}</span></div>
+    {!row.rest && <button type="button" className="fk-link dim" onClick={() => write(m => withCleared(m, key))}>{ft('Restore')}</button>}
   </div>
   if (row.state === 'pending') {
     const s = row.suggestion
     return <div className="fk-swap open">
       <div className="fk-swap-ex"><Thumb ex={row.ex} /><div><div className="fk-eyebrow">{ft('Instead of')}</div><div className="fk-swap-from big">{from}</div></div></div>
-      <div className="fk-swap-ex"><Thumb ex={s.ex} /><div><div className="fk-tag">{row.declined.length ? ft('Second suggestion') : ft('Suggested')}</div><div className="fk-swap-to big">{nameOf(s.ex)}</div></div></div>
-      <p className="fk-swap-why">{reason(row, s)}</p>
+      <div className="fk-swap-ex"><Thumb ex={s.ex} /><div><div className="fk-tag">{lim ? limitTag(row.limit) : row.declined.length ? ft('Second suggestion') : ft('Suggested')}</div>
+        <div className="fk-swap-to big">{s.keep ? ft('Keep it, easier') : nameOf(s.ex)}{s.hold ? ' · ' + ft('hold') : ''}</div></div></div>
+      <p className="fk-swap-why">{lim ? ft(s.why) : reason(row, s)}</p>
       <div className="fk-two">
-        <button type="button" className="btn primary" onClick={() => write(m => withApproved(m, key, s.ex.id))}>{ft('Approve')}</button>
-        <button type="button" className="btn fk-outline" onClick={() => write(m => withDeclined(m, key, s.ex.id))}>{row.declined.length ? ft('Reject') : ft('Suggest another')}</button>
+        <button type="button" className="btn primary" onClick={() => write(m => (s.keep ? withKept(m, key, lim) : withApproved(m, key, s.ex.id, undefined, lim)))}>{ft('Approve')}</button>
+        <button type="button" className="btn fk-outline" onClick={() => write(m => withDeclined(m, key, s.ex.id, undefined, lim))}>{row.declined.length ? ft('Reject') : ft('Suggest another')}</button>
       </div>
     </div>
   }
   // Two refusals, or nothing the place can offer: the skip question.
   return <div className="fk-swap open" role="group" aria-label={ft('Do you want to skip this exercise?')}>
     <div className="fk-swap-to big">{ft('Do you want to skip this exercise?')}</div>
-    <p className="fk-swap-why">{ft('{0} has no approved replacement. Skipping takes it out of {1} while you train at {2}. It stays in your plan everywhere else.', from, routine.name, place.name)}</p>
+    {lim && <div className="fk-tag">{limitTag(row.limit)}</div>}
+    <p className="fk-swap-why">{lim
+      ? ft('{0} has nothing gentler left for your {1}. Skipping takes it out of {2} while you train at {3}.', from, area, routine.name, place.name)
+      : ft('{0} has no approved replacement. Skipping takes it out of {1} while you train at {2}. It stays in your plan everywhere else.', from, routine.name, place.name)}</p>
     <div className="fk-two">
-      <button type="button" className="btn primary" onClick={() => write(m => withSkipped(m, key))}>{ft('Yes, skip it')}</button>
-      <button type="button" className="btn fk-outline" onClick={choose}>{ft('No, let me choose')}</button>
+      <button type="button" className="btn primary" onClick={() => write(m => withSkipped(m, key, undefined, lim))}>{ft('Yes, skip it')}</button>
+      {lim ? <button type="button" className="btn fk-outline" onClick={() => write(m => withKept(m, key, lim))}>{ft('No, keep it')}</button>
+        : <button type="button" className="btn fk-outline" onClick={choose}>{ft('No, let me choose')}</button>}
     </div>
   </div>
 }

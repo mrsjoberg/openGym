@@ -10,6 +10,12 @@
 //
 //   S.placeSwaps = { 'placeId:routineId:exId': { to: '1459', declined: ['4861'], _ts } | { skip: true, declined: [...], _ts } }
 //
+// An exercise that loads one of her limits (limits.js) is asked about the same way, and first: its
+// ladder of gentler versions comes before the kit question, and only steps the place can do are
+// offered. Such a decision carries `lim`, the area it was made for, and may be `{ keep: true }`:
+// keep the exercise, easier. It counts only while that limit is hers, so taking the limit away
+// brings the original back.
+//
 // A stamped map (lib/sync-merge.js STAMPED_MAPS, mirrored in api/sync-stamps.js): each decision
 // carries its own edit time and syncs on its own, the newer one winning.
 //
@@ -21,6 +27,7 @@ import { eqAvailable, profileEquipment, ALL_EQUIPMENT } from '../lib/equipment.j
 import { profileMachines } from '../lib/machine-kinds.js'
 import { SUBSTITUTE_FAMILIES } from '../lib/exercise-substitutes.js'
 import { currentGymId } from '../lib/gym-split.js'
+import { limitOn, limitOffers, limitsOf } from './limits.js'
 
 const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v)
 const list = v => (Array.isArray(v) ? v : [])
@@ -100,30 +107,41 @@ export const swapKey = (placeId, routineId, exId) => `${placeId}:${routineId}:${
 export function readDecision(entry) {
   if (!isMap(entry)) return null
   const declined = list(entry.declined).filter(id => typeof id === 'string')
-  if (entry.skip === true) return { skip: true, declined }
-  if (typeof entry.to === 'string' && entry.to) return { to: entry.to, declined }
-  return declined.length ? { declined } : null
+  const lim = typeof entry.lim === 'string' && entry.lim ? { lim: entry.lim } : {}
+  if (entry.skip === true) return { skip: true, declined, ...lim }
+  if (entry.keep === true) return { keep: true, declined, ...lim }
+  if (typeof entry.to === 'string' && entry.to) return { to: entry.to, declined, ...lim }
+  return declined.length ? { declined, ...lim } : null
 }
 
 export const decisionOf = (S, placeId, routineId, exId) =>
   readDecision(isMap(S?.placeSwaps) ? S.placeSwaps[swapKey(placeId, routineId, exId)] : null)
 
 const stamped = (map, key, entry, now) => ({ ...(isMap(map) ? map : {}), [key]: { ...entry, _ts: now } })
-const declinedOf = (map, key) => readDecision(isMap(map) ? map[key] : null)?.declined || []
+// What she has refused so far, for the same reason: refusals about the kit say nothing about a limit.
+const declinedOf = (map, key, lim) => {
+  const d = readDecision(isMap(map) ? map[key] : null)
+  return d && d.lim === (lim || undefined) ? d.declined : []
+}
+const forLimit = lim => (lim ? { lim } : {})
 
-/** S.placeSwaps with the replacement approved. */
-export const withApproved = (map, key, toId, now = Date.now()) =>
-  stamped(map, key, { to: toId, declined: declinedOf(map, key).filter(id => id !== toId) }, now)
+/** S.placeSwaps with the replacement approved. `lim` is the area, when the question was about a limit. */
+export const withApproved = (map, key, toId, now = Date.now(), lim) =>
+  stamped(map, key, { to: toId, declined: declinedOf(map, key, lim).filter(id => id !== toId), ...forLimit(lim) }, now)
+
+/** S.placeSwaps with the exercise kept under a limit: the same exercise, easier. */
+export const withKept = (map, key, lim, now = Date.now()) =>
+  stamped(map, key, { keep: true, declined: declinedOf(map, key, lim), ...forLimit(lim) }, now)
 
 /** S.placeSwaps with one more suggestion refused; an approved replacement that is refused goes with it. */
-export function withDeclined(map, key, exId, now = Date.now()) {
-  const declined = [...new Set([...declinedOf(map, key), exId])]
-  return stamped(map, key, { declined }, now)
+export function withDeclined(map, key, exId, now = Date.now(), lim) {
+  const declined = [...new Set([...declinedOf(map, key, lim), exId])]
+  return stamped(map, key, { declined, ...forLimit(lim) }, now)
 }
 
 /** S.placeSwaps with the exercise skipped at that place. */
-export const withSkipped = (map, key, now = Date.now()) =>
-  stamped(map, key, { skip: true, declined: declinedOf(map, key) }, now)
+export const withSkipped = (map, key, now = Date.now(), lim) =>
+  stamped(map, key, { skip: true, declined: declinedOf(map, key, lim), ...forLimit(lim) }, now)
 
 /** S.placeSwaps with the decision taken back: the exercise is asked about again, from the start. */
 export const withCleared = (map, key, now = Date.now()) => stamped(map, key, {}, now)
@@ -145,7 +163,11 @@ export function routineAtPlace(S, routine, place) {
   const held = rows.map(cfg => cfg.id)
   return rows.map(cfg => {
     const ex = EXIDX[cfg.id] || null
-    const d = decisionOf(S, place.id, routine.id, cfg.id)
+    const any = decisionOf(S, place.id, routine.id, cfg.id)
+    // A limit of hers comes first: its ladder, then the kit.
+    const limit = ex ? limitOn(S, cfg.id) : null
+    if (limit) return limitRow(S, cfg, ex, place, held, limit, any && any.lim === limit.area ? any : null)
+    const d = any && !any.lim ? any : null
     const declined = d?.declined || []
     // Her own exercises and anything the catalogue does not know are never second-guessed.
     if (!ex || fitsPlace(ex, place)) return { cfg, ex, state: 'fits', declined }
@@ -157,6 +179,23 @@ export function routineAtPlace(S, routine, place) {
     if (declined.length >= MAX_SUGGESTIONS) return { cfg, ex, state: 'ask-skip', declined }
     return { cfg, ex, state: 'pending', suggestion, declined }
   })
+}
+
+// An exercise that loads one of her limits, as it stands at a place. Told to rest it: skipped, with
+// nothing to decide. Otherwise the next step of its ladder she has not refused; with none left, the
+// skip question. "Keep it" is refused under the exercise's own id.
+function limitRow(S, cfg, ex, place, held, limit, d) {
+  const declined = d?.declined || []
+  const { rest, offers } = limitOffers(S, cfg.id, { fits: c => fitsPlace(c, place), exclude: held })
+  if (rest) return { cfg, ex, state: 'skipped', limit, rest: true, declined: [] }
+  if (d?.skip) return { cfg, ex, state: 'skipped', limit, declined }
+  if (d?.keep) return { cfg, ex, state: 'approved', limit, keep: true, to: ex, declined }
+  const approved = d?.to ? offers.find(o => o.id === d.to) : null
+  if (approved) return { cfg, ex, state: 'approved', limit, to: EXIDX[approved.id], hold: !!approved.hold, why: approved.why, declined }
+  const next = offers.find(o => !declined.includes(o.keep ? cfg.id : o.id))
+  if (!next) return { cfg, ex, state: 'ask-skip', limit, declined }
+  const suggestion = { ex: next.keep ? ex : EXIDX[next.id], keep: !!next.keep, hold: !!next.hold, why: next.why, sameMovement: true, loose: false }
+  return { cfg, ex, state: 'pending', limit, suggestion, declined }
 }
 
 /** How a routine fits a place: { total, fits, swaps, undecided, skipped }. `swaps` counts every exercise the kit cannot do. */
@@ -181,15 +220,18 @@ const CARRIED = ['sets', 'reps', 'repsMin', 'rest', 'sg', 'note']
  * approved it. The same object comes back when nothing differs.
  */
 export function routineForPlace(S, routine, place) {
-  if (!routine || !place || !isMap(S?.placeSwaps)) return routine
+  if (!routine || !place || (!isMap(S?.placeSwaps) && !limitsOf(S).length)) return routine
   let changed = false
   const ex = []
   for (const row of routineAtPlace(S, routine, place)) {
     if (row.state === 'skipped') { changed = true; continue }
     if (row.state !== 'approved') { ex.push(row.cfg); continue }
     changed = true
-    const next = { id: row.to.id, swappedFrom: row.cfg.id }
-    for (const k of CARRIED) if (row.cfg[k] !== undefined) next[k] = row.cfg[k]
+    // Kept under a limit: the same exercise, marked so the workout says to go easier.
+    if (row.keep) { ex.push({ ...row.cfg, limit: row.limit.area }); continue }
+    const next = { id: row.to.id, swappedFrom: row.cfg.id, ...(row.limit ? { limit: row.limit.area } : {}) }
+    // A hold is counted in seconds: it takes the sets, never the reps of the lift it stands in for.
+    for (const k of CARRIED) if (row.cfg[k] !== undefined && !(row.hold && (k === 'reps' || k === 'repsMin'))) next[k] = row.cfg[k]
     ex.push(next)
   }
   return changed ? { ...routine, ex } : routine
@@ -225,7 +267,9 @@ export const swappedCount = (S, routines, place) =>
 export function approveAll(map, S, routines, place, now = Date.now()) {
   let out = isMap(map) ? map : {}
   for (const g of reviewList(S, routines, place)) for (const r of g.rows) {
-    if (r.state === 'pending') out = withApproved(out, swapKey(place.id, g.routine.id, r.cfg.id), r.suggestion.ex.id, now)
+    if (r.state !== 'pending') continue
+    const key = swapKey(place.id, g.routine.id, r.cfg.id)
+    out = r.suggestion.keep ? withKept(out, key, r.limit.area, now) : withApproved(out, key, r.suggestion.ex.id, now, r.limit?.area)
   }
   return out
 }

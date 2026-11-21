@@ -10,8 +10,9 @@ import KitPicker from './KitPicker.jsx'
 import { ProgrammeCards } from './ProgrammeLibrary.jsx'
 import { PLACE_KINDS, addPlaces, chipCount, makePlace } from './places.js'
 import { SwapReview } from './ReviewSwaps.jsx'
+import { LimitsStep } from './Limits.jsx'
 
-const STEPS = 4
+const STEPS = 5
 
 export default function Onboarding() {
   const update = useStore(s => s.update)
@@ -57,7 +58,7 @@ export default function Onboarding() {
     const go = () => {
       if (next) return setAt(at + 1)
       update(s => { addPlaces(s, places) })
-      setStep('programme')
+      setStep('limits')
     }
     return <div className="fk-onb">
       <div className="fk-onb-head">
@@ -68,16 +69,19 @@ export default function Onboarding() {
       <KitPicker equipment={place.equipment} onChange={setEq} />
       <div className="fk-onb-foot">
         <p><strong>{ft('{0} selected for {1}.', chipCount(place.equipment), place.name)}</strong> {ft('No kit is fine too. Your plan adapts to what you have.')}</p>
-        <button type="button" className="btn primary" onClick={go}>{next ? ft('Next: {0}', next.name) : ft('Choose a programme')}</button>
+        <button type="button" className="btn primary" onClick={go}>{next ? ft('Next: {0}', next.name) : ft('Continue')}</button>
         <button type="button" className="fk-link dim" onClick={() => (at ? setAt(at - 1) : setStep('places'))}>{ft('Back')}</button>
       </div>
     </div>
   }
 
+  // Anything to work around: asked once, here, and changed afterwards only in Settings.
+  if (step === 'limits') return <LimitsStep eyebrow={ft('Step {0} of {1}', 3, STEPS)} onDone={() => setStep('programme')} onBack={() => setStep('kit')} />
+
   if (step === 'review') return <div className="fk-onb">
     <div className="fk-onb-head">
-      <div className="fk-eyebrow">{ft('Step {0} of {1}', 4, STEPS)} · {places[0]?.name}</div>
-      <h1>{ft('A few swaps for')} <em>{places[0]?.name}</em>.</h1>
+      <div className="fk-eyebrow">{ft('Step {0} of {1}', 5, STEPS)} · {places[0]?.name}</div>
+      <h1>{ft('Review your')} <em>{ft('plan')}</em>.</h1>
       <p>{ft('Nothing changes until you approve.')}</p>
     </div>
     <SwapReview place={places[0]} onDone={finish} />
@@ -85,7 +89,7 @@ export default function Onboarding() {
 
   return <div className="fk-onb">
     <div className="fk-onb-head">
-      <div className="fk-eyebrow">{ft('Step {0} of {1}', 3, STEPS)} · {places[0]?.name}</div>
+      <div className="fk-eyebrow">{ft('Step {0} of {1}', 4, STEPS)} · {places[0]?.name}</div>
       <h1>{ft('Programmes that')} <em>{ft('fit')}</em>.</h1>
     </div>
     <ProgrammeCards place={places[0] || null} onStart={() => (places[0] ? setStep('review') : finish())} />

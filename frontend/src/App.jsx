@@ -73,6 +73,7 @@ import MobileOnboarding from './views/MobileOnboarding.jsx'
 import { lightOnly, overlayOn, PAGE_COLOR } from './fitkat/brand.js'
 import FitkatOnboarding from './fitkat/Onboarding.jsx'
 import FitkatPlaces from './fitkat/Places.jsx'
+import FitkatLimits from './fitkat/Limits.jsx'
 import FitkatProgrammeLibrary from './fitkat/ProgrammeLibrary.jsx'
 import FitkatReviewSwaps from './fitkat/ReviewSwaps.jsx'
 import PermissionSteps from './views/PermissionSteps.jsx'
@@ -405,6 +406,7 @@ function Shell() {
   const view = l => (!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : permSteps ? <PermissionSteps /> : fitkatSetup ? <FitkatOnboarding /> : (
     <Routes location={l}>
       <Route path="/places" element={<FitkatPlaces />} />
+      <Route path="/limits" element={<FitkatLimits />} />
       <Route path="/swaps" element={<FitkatReviewSwaps />} />
       <Route path="/plan/library" element={<FitkatProgrammeLibrary />} />
       <Route path="/home" element={<Home />} />

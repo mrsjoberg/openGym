@@ -51,6 +51,7 @@ import { wakeLockSupported } from '../lib/wakelock.js'
 import { t, tn, LANGS, INSTR_LANGS, EXERCISE_NAME_LANGS, baseLang, dateLocale } from '../lib/i18n.js'
 import { isOffered, lightOnly, appName, overlayOn } from '../fitkat/brand.js'
 import { PlacesLink } from '../fitkat/Places.jsx'
+import { LimitsLink } from '../fitkat/Limits.jsx'
 import { nameIn, said } from '../lib/a11y-name.js'
 import { effectiveLang } from '../lib/default-lang.js'
 import { DEMO, REPO } from '../lib/demo.js'
@@ -1066,7 +1067,7 @@ export default function Settings({ page = null, find = null, via = null, entryKe
       </Section>
     </>,
 
-    equipment: () => <>{overlayOn() && <PlacesLink />}<EquipmentCard S={S} update={update} /></>,
+    equipment: () => <>{overlayOn() && <PlacesLink />}{overlayOn() && <LimitsLink />}<EquipmentCard S={S} update={update} /></>,
 
     look: () => <>
       <Section footer={DEMO || MOBILE || !user ? undefined : t('synced with your profile')}>
