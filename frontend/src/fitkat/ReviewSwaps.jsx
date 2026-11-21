@@ -5,10 +5,12 @@
 //
 // An exercise that loads one of her limits (limits.js) is reviewed here too, and says so: the next
 // step of its ladder with the reason it asks less of the joint, or "Keep it, easier".
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useLang } from '../lib/i18n.js'
 import { exerciseNameText } from '../lib/format.js'
+import { EXIDX } from '../lib/exercises.js'
 import { menuSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Thumb } from '../components/Media.jsx'
@@ -20,6 +22,7 @@ import {
 } from './place-swaps.js'
 import { AREA_LABEL } from './limits.js'
 import { limitTag } from './Limits.jsx'
+import { fillKey, fillEntries, fillSuggestions, withFillAdded, withFillRemoved } from './fills.js'
 
 const nameOf = ex => (ex ? exerciseNameText(ex) : '')
 // Why this one: what it shares with the exercise it stands in for, and what it uses.
@@ -85,14 +88,32 @@ function Row({ S, place, routine, row, write }) {
 }
 
 // Under a routine's name, when resting an area has taken exercises out of it: how much is left.
-function RestLine({ S, routine, place }) {
+// With "Build your own": exercises she adds in place of the ones resting took out (fills.js).
+function RestLine({ S, routine, place, writeFills }) {
+  const [open, setOpen] = useState(false)
   const c = sessionCount(S, routine, place)
   if (!c.resting.length) return null
   const areas = c.resting.map(a => ft(AREA_LABEL[a]).toLowerCase()).join(' ' + ft('and') + ' ')
-  return <p className={'fk-rest-line' + (c.short ? ' short' : '')}>
-    {c.short && <span className="fk-tag">{ft('Short session')}</span>}
-    <span>{ft('{0} of {1} exercises while you rest your {2}.', c.kept, c.total, areas)}</span>
-  </p>
+  const key = fillKey(place.id, routine.id)
+  const added = fillEntries(S, routine, place).map(e => EXIDX[e.id])
+  const more = open ? fillSuggestions(S, routine, place) : []
+  return <div className="fk-fill">
+    <p className={'fk-rest-line' + (c.short ? ' short' : '')}>
+      {c.short && !added.length && <span className="fk-tag">{ft('Short session')}</span>}
+      <span>{ft('{0} of {1} exercises while you rest your {2}.', c.kept, c.total, areas)}{added.length ? ' ' + ft('{0} added.', added.length) : ''}</span>
+    </p>
+    {added.map(ex => <div key={ex.id} className="fk-swap done">
+      <div className="fk-swap-names"><span className="fk-tag fits">{ft('Added')}</span><span className="fk-swap-to">{nameOf(ex)}</span></div>
+      <button type="button" className="fk-link dim" onClick={() => writeFills(m => withFillRemoved(m, key, ex.id))}>{ft('Remove')}</button>
+    </div>)}
+    {open && <p className="fk-swap-why">{ft('These leave your {0} alone and use what {1} has. Nothing you said is sore today.', areas, place.name)}</p>}
+    {more.map(s => <div key={s.ex.id} className="fk-swap done">
+      <div className="fk-swap-names"><span className="fk-swap-to">{nameOf(s.ex)}</span><span className="fk-prog-about">{ft(s.why)}</span></div>
+      <button type="button" className="fk-link" onClick={() => writeFills(m => withFillAdded(m, key, s.ex.id))}>{ft('Add')}</button>
+    </div>)}
+    {open && !more.length && <p className="fk-swap-why">{ft('Nothing more to suggest here.')}</p>}
+    <button type="button" className="fk-link" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? ft('Done adding') : added.length ? ft('Add more') : ft('Build your own')}</button>
+  </div>
 }
 
 /** The review itself, shared by its own screen and the last step of onboarding. */
@@ -100,6 +121,7 @@ export function SwapReview({ place, onDone }) {
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
   const write = fn => update(s => { s.placeSwaps = fn(s.placeSwaps) })
+  const writeFills = fn => update(s => { s.placeFills = fn(s.placeFills) })
   const groups = reviewList(S, S.routines, place)
   const total = groups.reduce((n, g) => n + g.rows.length, 0)
   const left = undecidedCount(S, S.routines, place)
@@ -114,7 +136,7 @@ export function SwapReview({ place, onDone }) {
     </div>
     {groups.map(g => <div key={g.routine.id} className="fk-swap-group">
       <h4 className="sec">{g.routine.name}</h4>
-      <RestLine S={S} routine={g.routine} place={place} />
+      <RestLine S={S} routine={g.routine} place={place} writeFills={writeFills} />
       {g.rows.map(row => <Row key={row.cfg.id} S={S} place={place} routine={g.routine} row={row} write={write} />)}
     </div>)}
     <div className="fk-onb-foot">

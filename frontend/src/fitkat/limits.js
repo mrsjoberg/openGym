@@ -22,7 +22,7 @@
 //
 // The reasons are coaching convention. No physiotherapist has verified them.
 import { EXIDX } from '../lib/exercises.js'
-import { FLAGS, LISTS, WHYS } from './limits-data.js'
+import { FLAGS, LISTS, WHYS, TOUCHES } from './limits-data.js'
 
 const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v)
 
@@ -75,6 +75,23 @@ export const withoutLimit = (map, area, now = Date.now()) => ({ ...(isMap(map) ?
 
 /** The areas an exercise loads, whether or not she has a limit there. */
 export const areasLoaded = exId => AREAS.filter(a => FLAGS[exId]?.[CODE[a]] !== undefined)
+
+/** The areas an exercise loads or merely involves: everything it does not leave alone. */
+export const areasTouched = exId => AREAS.filter(a => FLAGS[exId]?.[CODE[a]] !== undefined || (TOUCHES[exId] || '').includes(CODE[a]))
+
+// The parts of the body (the catalogue's `bodyPart`) that sit around each area. Used only for what
+// may be ADDED to a session while she rests an area: the tags are rule-derived and miss things, so
+// nothing from the same region is suggested at all. Deliberately wide. Not reviewed by a physio.
+export const REGION = {
+  neck: ['neck', 'shoulders', 'back'],
+  shoulder: ['shoulders', 'chest', 'back', 'upper arms'],
+  elbow: ['upper arms', 'lower arms', 'shoulders', 'chest', 'back'],
+  wrist: ['lower arms', 'upper arms', 'shoulders', 'chest', 'back'],
+  back: ['back', 'waist', 'upper legs'],
+  hip: ['upper legs', 'waist'],
+  knee: ['upper legs', 'lower legs'],
+  ankle: ['lower legs', 'upper legs'],
+}
 
 // Told to rest wins, then Avoid, then Go easy; between equals, the order the areas are listed.
 const rank = l => (l.rest ? 0 : l.mode === 'avoid' ? 1 : 2)

@@ -28,6 +28,7 @@ import { profileMachines } from '../lib/machine-kinds.js'
 import { SUBSTITUTE_FAMILIES } from '../lib/exercise-substitutes.js'
 import { currentGymId } from '../lib/gym-split.js'
 import { limitOn, limitOffers, limitsOf, withLimit } from './limits.js'
+import { fillEntries } from './fills.js'
 
 const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v)
 const list = v => (Array.isArray(v) ? v : [])
@@ -46,10 +47,10 @@ const overlap = (a, b) => {
   return inter ? inter / (a.size + b.size - inter) : 0
 }
 // Never a stand-in for a working set, whatever muscle it shares with one.
-const NOT_A_LIFT = /stretch|isometric|squeeze|yoga|\bpose\b|toe touch|\broll(er)?\b|mobility|circles|warm-?up|boxing|against wall/i
+export const NOT_A_LIFT = /stretch|isometric|squeeze|yoga|\bpose\b|toe touch|\broll(er)?\b|mobility|circles|warm-?up|boxing|against wall/i
 // Kinds of exercise that only stand in for their own kind: a jump is not a set of hip thrusts.
 const OTHER_KINDS = new Set(['plyometrics', 'stretching', 'mobility', 'yoga', 'cardio', 'rehab', 'combat'])
-const NEEDS_BALL = /exercise ball|stability ball|swiss ball|bosu/i
+export const NEEDS_BALL = /exercise ball|stability ball|swiss ball|bosu/i
 
 /** What a place has: its equipment list and, when it names them, its machines. */
 export const kitOfPlace = place => ({ equipment: profileEquipment(place), machines: profileMachines(place) })
@@ -246,7 +247,9 @@ export function routineForPlace(S, routine, place) {
     for (const k of CARRIED) if (row.cfg[k] !== undefined && !(row.hold && (k === 'reps' || k === 'repsMin'))) next[k] = row.cfg[k]
     ex.push(next)
   }
-  return changed ? { ...routine, ex } : routine
+  // "Build your own": what she added to a session that resting an area left short (fills.js).
+  const extra = fillEntries(S, routine, place, new Set(ex.map(e => e.id)))
+  return changed || extra.length ? { ...routine, ex: [...ex, ...extra] } : routine
 }
 
 /** The place a session is running at, or the one that is active: an equipment profile, or null. */

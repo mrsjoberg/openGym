@@ -12,7 +12,7 @@ sys.path.insert(0, HERE)
 import moves as V
 
 CODE = {'neck': 'n', 'shoulder': 's', 'elbow': 'e', 'wrist': 'w', 'lower back': 'b', 'hip': 'h', 'knee': 'k', 'ankle': 'a'}
-whys, lists, flags = [], [], {}
+whys, lists, flags, touches = [], [], {}, {}
 widx, lidx = {}, {}
 
 
@@ -42,6 +42,10 @@ for i in sorted(V.EX):
         if key not in lidx: lidx[key] = len(lists); lists.append(steps)
         row[CODE[area]] = lidx[key]
     if row: flags[i] = row
+    # Takes part without being the point (a hip thrust involves the knee): never flagged, but not something to
+    # add to a session while she rests that area.
+    part = ''.join(sorted(CODE[a] for a, v in t['limits'].items() if v == 1))
+    if part: touches[i] = part
 
 out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, 'limits-data.js')
 js = lambda x: json.dumps(x, ensure_ascii=False, separators=(',', ':'))
@@ -55,4 +59,6 @@ with open(out, 'w') as f:
     f.write('export const WHYS = ' + js(whys) + '\n')
     f.write('export const LISTS = ' + js(lists) + '\n')
     f.write('export const FLAGS = ' + js(flags) + '\n')
+    f.write('// TOUCHES[exerciseId] is the areas an exercise involves without loading them, as a string of area letters.\n')
+    f.write('export const TOUCHES = ' + js(touches) + '\n')
 print('flagged exercises', len(flags), '| lists', len(lists), '| reasons', len(whys), '| bytes', os.path.getsize(out))

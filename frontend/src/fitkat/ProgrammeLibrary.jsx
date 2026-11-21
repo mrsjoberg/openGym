@@ -11,11 +11,18 @@ import Icon from '../components/Icon.jsx'
 import { ft } from './strings.js'
 import { placesOf, programmeFits } from './places.js'
 import { currentPlace } from './place-swaps.js'
+import { STARTER_PLANS } from '../../../api/coach/core/starter-plans.js'
+import { AREA_LABEL, limitOn, limitsOf } from './limits.js'
 
 /** The cards themselves, shared with onboarding. `onStart(id)` runs after the plan is loaded. */
 export function ProgrammeCards({ place, onStart }) {
   const [only, setOnly] = useState(false)
   const all = programmeFits(place)
+  // With a limit of hers: how much of each programme it leaves as written.
+  const S = useStore(s => s.S)
+  const limits = limitsOf(S)
+  const mine = limits.length > 2 ? ft('limits') : limits.map(l => ft(AREA_LABEL[l.area]).toLowerCase()).join(' ' + ft('and') + ' ')
+  const untouched = id => STARTER_PLANS[id].routines.reduce((n, r) => n + r[3].filter(([exId]) => !limitOn(S, exId)).length, 0)
   const shown = only ? all.filter(p => p.swaps === 0) : all
   const start = id => { if (loadStarterPlan(id)) onStart?.(id) }
   return <>
@@ -35,6 +42,7 @@ export function ProgrammeCards({ place, onStart }) {
               : <span className="fk-tag">{ft('{0} swaps for {1}', p.swaps, place.name)}</span>)}
             <span>{ft('{0} days a week', p.days)}</span>
           </span>
+          {limits.length > 0 && <span className="fk-prog-about">{ft('{0} of {1} exercises unchanged with your {2}', untouched(p.id), p.exercises, mine)}</span>}
         </button>
       })}
       {!shown.length && <p className="fk-note">{ft('Nothing here fits yet. Try All.')}</p>}
