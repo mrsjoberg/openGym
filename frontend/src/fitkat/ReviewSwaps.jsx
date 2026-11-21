@@ -16,7 +16,7 @@ import { ft } from './strings.js'
 import { placesOf } from './places.js'
 import {
   currentPlace, reviewList, undecidedCount, approveAll, suggestSwaps, swapKey,
-  withApproved, withDeclined, withSkipped, withCleared, withKept,
+  withApproved, withDeclined, withSkipped, withCleared, withKept, sessionCount,
 } from './place-swaps.js'
 import { AREA_LABEL } from './limits.js'
 import { limitTag } from './Limits.jsx'
@@ -84,6 +84,17 @@ function Row({ S, place, routine, row, write }) {
   </div>
 }
 
+// Under a routine's name, when resting an area has taken exercises out of it: how much is left.
+function RestLine({ S, routine, place }) {
+  const c = sessionCount(S, routine, place)
+  if (!c.resting.length) return null
+  const areas = c.resting.map(a => ft(AREA_LABEL[a]).toLowerCase()).join(' ' + ft('and') + ' ')
+  return <p className={'fk-rest-line' + (c.short ? ' short' : '')}>
+    {c.short && <span className="fk-tag">{ft('Short session')}</span>}
+    <span>{ft('{0} of {1} exercises while you rest your {2}.', c.kept, c.total, areas)}</span>
+  </p>
+}
+
 /** The review itself, shared by its own screen and the last step of onboarding. */
 export function SwapReview({ place, onDone }) {
   const S = useStore(s => s.S)
@@ -103,6 +114,7 @@ export function SwapReview({ place, onDone }) {
     </div>
     {groups.map(g => <div key={g.routine.id} className="fk-swap-group">
       <h4 className="sec">{g.routine.name}</h4>
+      <RestLine S={S} routine={g.routine} place={place} />
       {g.rows.map(row => <Row key={row.cfg.id} S={S} place={place} routine={g.routine} row={row} write={write} />)}
     </div>)}
     <div className="fk-onb-foot">

@@ -27,7 +27,7 @@ import { eqAvailable, profileEquipment, ALL_EQUIPMENT } from '../lib/equipment.j
 import { profileMachines } from '../lib/machine-kinds.js'
 import { SUBSTITUTE_FAMILIES } from '../lib/exercise-substitutes.js'
 import { currentGymId } from '../lib/gym-split.js'
-import { limitOn, limitOffers, limitsOf } from './limits.js'
+import { limitOn, limitOffers, limitsOf, withLimit } from './limits.js'
 
 const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v)
 const list = v => (Array.isArray(v) ? v : [])
@@ -257,6 +257,36 @@ export function currentPlace(S) {
 
 /** buildSessionEntries' hook: the routine for where she is training now. */
 export const routineHere = (S, routine) => routineForPlace(S, routine, currentPlace(S))
+
+/* ------------------------------------------------------- told to rest it -- */
+
+/**
+ * A routine counted at a place: { total, kept, resting }. `kept` is what still runs once the
+ * skipped exercises are out; `resting` is the areas she was told to rest that took some out.
+ * `short` is a session left with fewer than half its exercises, or with one.
+ */
+export function sessionCount(S, routine, place) {
+  const rows = routineAtPlace(S, routine, place)
+  const kept = rows.filter(r => r.state !== 'skipped').length
+  const resting = [...new Set(rows.filter(r => r.rest).map(r => r.limit.area))]
+  return { total: rows.length, kept, resting, short: resting.length > 0 && (kept * 2 < rows.length || kept <= 1) }
+}
+
+/**
+ * What it would cost to rest an area, before she says yes: { skipped, short: [{ name, kept, total }] }.
+ * `skipped` is the exercises of her plan that load it; `short` the sessions it would leave short.
+ */
+export function restCost(S, routines, place, area) {
+  const out = { skipped: 0, short: [] }
+  if (!place) return out
+  const as = { ...S, bodyLimits: withLimit(S?.bodyLimits, area, { mode: 'avoid', rest: true }) }
+  for (const routine of list(routines)) {
+    out.skipped += routineAtPlace(as, routine, place).filter(r => r.rest && r.limit.area === area).length
+    const c = sessionCount(as, routine, place)
+    if (c.short && c.resting.includes(area)) out.short.push({ name: routine.name, kept: c.kept, total: c.total })
+  }
+  return out
+}
 
 /* ------------------------------------------------------------- the review -- */
 

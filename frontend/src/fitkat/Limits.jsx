@@ -11,7 +11,7 @@ import Icon from '../components/Icon.jsx'
 import { Row, Section } from '../components/ui.jsx'
 import { ft } from './strings.js'
 import { placesOf } from './places.js'
-import { currentPlace, reviewList } from './place-swaps.js'
+import { currentPlace, reviewList, restCost } from './place-swaps.js'
 import { AREAS, AREA_LABEL, AREA_HINT, limitsOf, withLimit, withoutLimit } from './limits.js'
 
 export const SAFETY = 'FitKat works around what you tell it. It cannot assess an injury. After surgery, or with pain that is sharp, getting worse or not settling, see a physio or doctor first.'
@@ -55,8 +55,13 @@ const Choice = ({ on, onClick, children }) => (
 )
 
 /** Go easy or Avoid for one area, and under Avoid whether she was told to rest it. */
-export function Treat({ area, value, onChange }) {
+export function Treat({ area, value, onChange, cost = null }) {
   const name = ft(AREA_LABEL[area])
+  // What resting it takes out of her plan, said before she answers. Without a plan yet, the plain rule.
+  const price = cost && cost.skipped
+    ? [ft(value.rest ? '{0} exercises in your plan are skipped.' : 'If yes, {0} exercises in your plan are skipped.', cost.skipped),
+      ...cost.short.map(s => ft('{0} keeps {1} of {2}.', s.name, s.kept, s.total))].join(' ')
+    : ft('If yes, every exercise that loads it is skipped.')
   const avoid = value.mode === 'avoid'
   return <div className="fk-treat">
     <h2>{name}</h2>
@@ -71,7 +76,7 @@ export function Treat({ area, value, onChange }) {
         <Choice on={!value.rest} onClick={() => onChange({ mode: 'avoid', rest: false })}>{ft('No')}</Choice>
         <Choice on={!!value.rest} onClick={() => onChange({ mode: 'avoid', rest: true })}>{ft('Yes')}</Choice>
       </div>
-      <p>{ft('If yes, every exercise that loads it is skipped.')}</p>
+      <p>{price}</p>
     </div>}
   </div>
 }
@@ -169,7 +174,7 @@ export default function Limits() {
           </div>
           {l.since && <span className="fk-prog-about">{ft('Since {0}', dayText(l.since))}</span>}
           {editing === l.area
-            ? <Treat area={l.area} value={l} onChange={v => set(l.area, v)} />
+            ? <Treat area={l.area} value={l} onChange={v => set(l.area, v)} cost={place ? restCost(S, S.routines, place, l.area) : null} />
             : <>
               {l.mode === 'avoid' && <div className="fk-limit-row"><span>{l.rest ? ft('Told to rest it: yes') : ft('Told to rest it: no')}</span>
                 <button type="button" className="fk-link" onClick={() => setEditing(l.area)}>{ft('Change')}</button></div>}

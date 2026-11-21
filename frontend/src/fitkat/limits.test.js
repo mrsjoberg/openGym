@@ -3,7 +3,7 @@ import { EXIDX } from '../lib/exercises.js'
 import { setOverlay } from './brand.js'
 import { FLAGS, LISTS, WHYS } from './limits-data.js'
 import { AREAS, limitsOf, withLimit, withoutLimit, limitOn, limitOffers, areasLoaded, readLimit, KEEP_EASIER, KEEP_SHORTER } from './limits.js'
-import { routineAtPlace, routineForPlace, swapKey, withApproved, withKept, withDeclined, withSkipped } from './place-swaps.js'
+import { routineAtPlace, routineForPlace, swapKey, withApproved, withKept, withDeclined, withSkipped, sessionCount, restCost } from './place-swaps.js'
 
 const byName = n => Object.values(EXIDX).find(e => e && e.n === n)?.id
 const SQUAT = byName('barbell full squat')
@@ -206,6 +206,20 @@ describe('a routine under a limit', () => {
     const rows = routineAtPlace(s, two, place)
     expect(rows[0].state).toBe('approved')
     expect(rows[1].suggestion.ex.id).not.toBe(first[0])
+  })
+  it('counts what a session keeps while she rests an area, and calls it short under half', () => {
+    const legs = { id: 'r3', name: 'Leg Day', ex: [SQUAT, byName('sled 45° leg press'), byName('lever leg extension'), BENCH].map(id => ({ id, sets: 3, reps: 10 })) }
+    expect(sessionCount(S(lim('knee', 'avoid', true)), legs, place)).toEqual({ total: 4, kept: 1, resting: ['knee'], short: true })
+    expect(sessionCount(S(lim('knee', 'avoid', true)), routine, place)).toMatchObject({ total: 2, kept: 1, short: true })
+    expect(sessionCount(S(lim('knee', 'avoid')), legs, place)).toMatchObject({ kept: 4, resting: [], short: false })
+  })
+  it('says what resting an area would cost before she answers', () => {
+    const legs = { id: 'r3', name: 'Leg Day', ex: [SQUAT, byName('sled 45° leg press'), byName('lever leg extension'), BENCH].map(id => ({ id, sets: 3, reps: 10 })) }
+    const upper = { id: 'r4', name: 'Upper', ex: [{ id: BENCH, sets: 3, reps: 8 }] }
+    // Asked while the limit is still only "Avoid": the answer is for "what if yes".
+    expect(restCost(S(lim('knee', 'avoid')), [legs, upper], place, 'knee')).toEqual({ skipped: 3, short: [{ name: 'Leg Day', kept: 1, total: 4 }] })
+    expect(restCost(S({}), [upper], place, 'knee')).toEqual({ skipped: 0, short: [] })
+    expect(restCost(S({}), [legs], null, 'knee')).toEqual({ skipped: 0, short: [] })
   })
   it('leaves the routine as written until she has decided', () => {
     expect(routineForPlace(S(lim('knee', 'easy')), routine, place)).toBe(routine)

@@ -139,3 +139,5 @@
 .fk-limit-name{font-family:var(--ff-display);font-weight:500;font-size:1.5rem;line-height:1.1}
 .fk-limit-row{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px;border-top:1px solid var(--sep);font-size:.8125rem}
 .fk-limit .fk-treat{border-bottom:0;padding-bottom:6px}
+.fk-rest-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding:10px 0 2px;color:var(--label-2);font-size:.8125rem;line-height:1.5}
+.fk-rest-line.short{color:var(--label)}
