@@ -77,7 +77,7 @@ export const withoutLimit = (map, area, now = Date.now()) => ({ ...(isMap(map) ?
 export const areasLoaded = exId => AREAS.filter(a => FLAGS[exId]?.[CODE[a]] !== undefined)
 
 /** The areas an exercise loads or merely involves: everything it does not leave alone. */
-export const areasTouched = exId => AREAS.filter(a => FLAGS[exId]?.[CODE[a]] !== undefined || (TOUCHES[exId] || '').includes(CODE[a]))
+export const areasTouched = exId => AREAS.filter(a => FLAGS[exId]?.[CODE[a]] !== undefined || (TOUCHES[exId] || '').includes(CODE[a]) || (POOL[exId] || '').includes(CODE[a]))
 
 /** The exercises that may be suggested as fill-ins: each was read one by one (scripts/fitkat/limits). */
 export const POOL_IDS = Object.keys(POOL)
@@ -112,6 +112,17 @@ export function limitOn(S, exId) {
     if (!best || rank(l) < rank(best)) best = { ...l, flag }
   }
   return best
+}
+
+/**
+ * A rested area that an exercise involves without loading it: { area, mode, rest, since }, or null.
+ * Such an exercise is not skipped. She is asked whether to keep it or skip it (owner, 21 Nov).
+ */
+export function restInvolved(S, exId) {
+  const rests = limitsOf(S).filter(l => l.rest)
+  if (!rests.length) return null
+  const touched = areasTouched(exId)
+  return rests.find(l => touched.includes(l.area)) || null
 }
 
 /**

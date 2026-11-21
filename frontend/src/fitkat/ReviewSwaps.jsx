@@ -47,6 +47,22 @@ function Row({ S, place, routine, row, write }) {
       items: more.map(s => ({ label: nameOf(s.ex), sub: s.loose ? ft('Works nearby muscles') : undefined, onClick: () => write(m => withApproved(m, key, s.ex.id)) })),
     })
   }
+  // It only involves an area she was told to rest: kept unless she says otherwise.
+  if (row.state === 'ask-rest') return <div className="fk-swap open">
+    <div className="fk-swap-names"><span className="fk-swap-to">{from}</span></div>
+    <div className="fk-swap-card">
+      <div className="fk-tag">{limitTag(row.limit)}</div>
+      <p className="fk-swap-why">{ft('This involves your {0} without training it. Keep it, or skip it while you rest?', area)}</p>
+      <div className="fk-two">
+        <button type="button" className="btn primary" onClick={() => write(m => withKept(m, key, lim))}>{ft('Keep')}</button>
+        <button type="button" className="btn fk-outline" onClick={() => write(m => withSkipped(m, key, undefined, lim))}>{ft('Skip')}</button>
+      </div>
+    </div>
+  </div>
+  if (row.state === 'kept') return <div className="fk-swap done">
+    <div className="fk-swap-names"><span className="fk-tag">{limitTag(row.limit)}</span><span className="fk-swap-to">{from}</span><span className="fk-prog-about">{ft('Kept')}</span></div>
+    <button type="button" className="fk-link dim" onClick={() => write(m => withCleared(m, key))}>{ft('Change')}</button>
+  </div>
   if (row.state === 'approved') return <div className="fk-swap done">
     <div className="fk-swap-names">{lim && <span className="fk-tag">{limitTag(row.limit)}</span>}
       {row.keep ? <><span className="fk-swap-to">{from}</span><span className="fk-prog-about">{ft('Kept, easier')}</span></>

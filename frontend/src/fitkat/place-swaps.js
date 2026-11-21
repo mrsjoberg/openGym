@@ -27,7 +27,7 @@ import { eqAvailable, profileEquipment, ALL_EQUIPMENT } from '../lib/equipment.j
 import { profileMachines } from '../lib/machine-kinds.js'
 import { SUBSTITUTE_FAMILIES } from '../lib/exercise-substitutes.js'
 import { currentGymId } from '../lib/gym-split.js'
-import { limitOn, limitOffers, limitsOf, withLimit } from './limits.js'
+import { limitOn, limitOffers, limitsOf, withLimit, restInvolved } from './limits.js'
 import { fillEntries } from './fills.js'
 
 const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v)
@@ -180,7 +180,15 @@ export function routineAtPlace(S, routine, place) {
     const d = any && !any.lim ? any : null
     const declined = d?.declined || []
     // Her own exercises and anything the catalogue does not know are never second-guessed.
-    if (!ex || fitsPlace(ex, place)) return { cfg, ex, state: 'fits', declined }
+    if (!ex) return { cfg, ex, state: 'fits', declined }
+    if (fitsPlace(ex, place)) {
+      // It fits, but it involves an area she was told to rest. It is not skipped: she is asked,
+      // and until she answers it stays in.
+      const rest = restInvolved(S, cfg.id)
+      if (!rest) return { cfg, ex, state: 'fits', declined }
+      const mine = any && any.lim === rest.area ? any : null
+      return { cfg, ex, state: mine?.skip ? 'skipped' : mine?.keep ? 'kept' : 'ask-rest', limit: rest, involved: true, declined: [] }
+    }
     if (d?.skip) return { cfg, ex, state: 'skipped', declined }
     // An approval stands only while the place can still do the replacement.
     if (d?.to && EXIDX[d.to] && fitsPlace(EXIDX[d.to], place)) return { cfg, ex, state: 'approved', to: EXIDX[d.to], declined }
@@ -213,7 +221,7 @@ export function fitOf(S, routine, place) {
   const out = { total: 0, fits: 0, swaps: 0, undecided: 0, skipped: 0 }
   for (const row of routineAtPlace(S, routine, place)) {
     out.total++
-    if (row.state === 'fits') { out.fits++; continue }
+    if (row.state === 'fits' || row.state === 'kept') { out.fits++; continue }
     out.swaps++
     if (row.state === 'skipped') out.skipped++
     else if (row.state !== 'approved') out.undecided++
@@ -302,7 +310,7 @@ export function reviewList(S, routines, place) {
 
 /** Exercises still waiting for her answer at a place. */
 export const undecidedCount = (S, routines, place) =>
-  reviewList(S, routines, place).reduce((n, g) => n + g.rows.filter(r => r.state !== 'approved' && r.state !== 'skipped').length, 0)
+  reviewList(S, routines, place).reduce((n, g) => n + g.rows.filter(r => r.state !== 'approved' && r.state !== 'skipped' && r.state !== 'kept').length, 0)
 
 /** Exercises that run as an approved replacement at a place. */
 export const swappedCount = (S, routines, place) =>
@@ -312,8 +320,10 @@ export const swappedCount = (S, routines, place) =>
 export function approveAll(map, S, routines, place, now = Date.now()) {
   let out = isMap(map) ? map : {}
   for (const g of reviewList(S, routines, place)) for (const r of g.rows) {
-    if (r.state !== 'pending') continue
     const key = swapKey(place.id, g.routine.id, r.cfg.id)
+    // "Keep or skip?" for what only involves a rested area: approving everything keeps it.
+    if (r.state === 'ask-rest') { out = withKept(out, key, r.limit.area, now); continue }
+    if (r.state !== 'pending') continue
     out = r.suggestion.keep ? withKept(out, key, r.limit.area, now) : withApproved(out, key, r.suggestion.ex.id, now, r.limit?.area)
   }
   return out

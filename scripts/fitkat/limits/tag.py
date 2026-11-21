@@ -162,7 +162,7 @@ def tag(e):
         # standing or walking under a load
         if upright and free and (has('squat') or has('lunge') or has('overhead') or re.search(r'carry|farmer|walk|step.?up|suitcase|standing', n)):
             put('lower back', 1)
-        if re.search(r'carry|farmer|suitcase|yoke|sled|prowler|walking', n):
+        if re.search(r'carry|farmer|suitcase|yoke|power sled|sled (push|drag|pull)|prowler|walking', n):
             for a in ('hip', 'knee', 'ankle', 'lower back'): put(a, 1)
         # the trunk: sit-ups pull on the hip flexors and the neck, rows and bridges hold the back
         if re.search(r'sit.?up|v.?up|jack.?knife|toes to bar|roll.?out|ab wheel|dragon flag', n): put('hip', 1); put('neck', 1)
@@ -194,9 +194,9 @@ def tag(e):
         if re.search(r'inverted row|body row|bench pull', n): put('hip', 1)
         # pressing or pushing on the feet
         if upright and (has('overhead') or re.search(r'standing.*press|press.*standing|block press', n)): put('lower back', 1)
-        if re.search(r'push press|jerk|thruster|tire flip|tyre|sled|prowler|judo|skier|windmill|wood.?chop|180|mountain climber|climber', n):
+        if re.search(r'push press|jerk|thruster|tire flip|tyre|power sled|sled (push|drag|pull)|prowler|judo|skier|windmill|wood.?chop|180|mountain climber|climber', n):
             for a in ('hip', 'knee', 'ankle', 'lower back'): put(a, 1)
-        if re.search(r'tire flip|tyre|sled|prowler', n):
+        if re.search(r'tire flip|tyre|power sled|sled (push|drag|pull)|prowler', n):
             for a in ('wrist', 'elbow', 'shoulder'): put(a, 1)
         # bent over without the words for it, and every squat and stand-up
         if upright and (re.search(r'rear delt|rear fly|concentration curl|landmine row', n) or (T == 'triceps' and re.search(r'kickback', n)) or (has('row') and free and not re.search(r'upright|seated|chest support|incline|lying|prone|supported', n))):

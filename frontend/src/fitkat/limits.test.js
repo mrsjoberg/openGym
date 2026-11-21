@@ -2,8 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { EXIDX } from '../lib/exercises.js'
 import { setOverlay } from './brand.js'
 import { FLAGS, LISTS, WHYS } from './limits-data.js'
-import { AREAS, limitsOf, withLimit, withoutLimit, limitOn, limitOffers, areasLoaded, readLimit, KEEP_EASIER, KEEP_SHORTER } from './limits.js'
-import { routineAtPlace, routineForPlace, swapKey, withApproved, withKept, withDeclined, withSkipped, sessionCount, restCost } from './place-swaps.js'
+import { AREAS, limitsOf, withLimit, withoutLimit, limitOn, limitOffers, areasLoaded, areasTouched, restInvolved, readLimit, KEEP_EASIER, KEEP_SHORTER } from './limits.js'
+import { routineAtPlace, routineForPlace, swapKey, withApproved, withKept, withDeclined, withSkipped, sessionCount, restCost, approveAll, fitOf, undecidedCount } from './place-swaps.js'
 
 const byName = n => Object.values(EXIDX).find(e => e && e.n === n)?.id
 const SQUAT = byName('barbell full squat')
@@ -234,5 +234,51 @@ describe('a routine under a limit', () => {
   it('does not let a decision made for the kit stand in for one about a limit, or the other way round', () => {
     const s = { ...S(lim('knee', 'easy')), placeSwaps: withSkipped({}, key, 1) }
     expect(at(s).state).toBe('pending')
+  })
+})
+
+describe('an exercise that only involves an area she rests', () => {
+  // A Romanian deadlift hangs from the hands: it involves the shoulder without loading it.
+  const RDL = byName('barbell romanian deadlift')
+  const gym = { id: 'gym', name: 'My gym', equipment: ['barbell', 'dumbbell', 'cable', 'leverage machine', 'bench', 'adjustable bench'], accV: 3 }
+  const legs = { id: 'legs', name: 'Leg Day', ex: [{ id: RDL, sets: 3, reps: 10 }, { id: byName('lever lying leg curl'), sets: 3, reps: 12 }] }
+  const key = swapKey('gym', 'legs', RDL)
+  const row = s => routineAtPlace(s, legs, gym)[0]
+
+  it('is found by what it touches, and only while she rests that area', () => {
+    expect(areasLoaded(RDL)).not.toContain('shoulder')
+    expect(areasTouched(RDL)).toContain('shoulder')
+    expect(restInvolved(S(lim('shoulder', 'avoid', true)), RDL)).toMatchObject({ area: 'shoulder', rest: true })
+    expect(restInvolved(S(lim('shoulder', 'avoid')), RDL)).toBe(null)
+    expect(restInvolved(S(lim('shoulder', 'easy')), RDL)).toBe(null)
+  })
+  it('is not skipped: she is asked, and until she answers it stays in', () => {
+    const s = S(lim('shoulder', 'avoid', true))
+    expect(row(s)).toMatchObject({ state: 'ask-rest', involved: true })
+    expect(routineAtPlace(s, legs, gym)[1].state).toBe('fits')
+    expect(routineForPlace(s, legs, gym)).toBe(legs)
+    expect(undecidedCount(s, [legs], gym)).toBe(1)
+    expect(sessionCount(s, legs, gym)).toMatchObject({ total: 2, kept: 2, resting: [] })
+  })
+  it('keeps it when she says keep, with nothing changed in the session', () => {
+    const s = { ...S(lim('shoulder', 'avoid', true)), placeSwaps: withKept({}, key, 'shoulder', 1) }
+    expect(row(s).state).toBe('kept')
+    expect(routineForPlace(s, legs, gym)).toBe(legs)
+    expect(undecidedCount(s, [legs], gym)).toBe(0)
+    expect(fitOf(s, legs, gym)).toMatchObject({ fits: 2, swaps: 0, undecided: 0 })
+  })
+  it('takes it out when she says skip', () => {
+    const s = { ...S(lim('shoulder', 'avoid', true)), placeSwaps: withSkipped({}, key, 1, 'shoulder') }
+    expect(row(s).state).toBe('skipped')
+    expect(routineForPlace(s, legs, gym).ex.map(e => e.id)).toEqual([legs.ex[1].id])
+  })
+  it('is kept by "approve all"', () => {
+    const s = S(lim('shoulder', 'avoid', true))
+    s.placeSwaps = approveAll({}, s, [legs], gym, 5)
+    expect(row(s).state).toBe('kept')
+  })
+  it('asks nothing once the limit is gone', () => {
+    const s = { bodyLimits: withoutLimit(lim('shoulder', 'avoid', true), 'shoulder', 9), placeSwaps: withSkipped({}, key, 1, 'shoulder') }
+    expect(row(s).state).toBe('fits')
   })
 })
