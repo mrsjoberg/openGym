@@ -180,10 +180,10 @@ describe('a routine under a limit', () => {
     const run = routineForPlace(s, { ...routine, ex: [{ id: SQUAT, sets: 3, reps: 8, rest: 120, weight: 60 }] }, place)
     expect(run.ex[0]).toEqual({ id: BOX, swappedFrom: SQUAT, limit: 'knee', sets: 3, reps: 8, rest: 120 })
   })
-  it('gives a hold its sets but not the reps of the lift it stands in for', () => {
+  it('runs a hold in seconds, with the sets but not the reps of the lift it stands in for', () => {
     const s = { ...S(lim('knee', 'avoid')), placeSwaps: withApproved({}, key, THIGH_HOLD, 1, 'knee') }
     const run = routineForPlace(s, routine, place)
-    expect(run.ex[0]).toEqual({ id: THIGH_HOLD, swappedFrom: SQUAT, limit: 'knee', sets: 3, rest: 120 })
+    expect(run.ex[0]).toEqual({ id: THIGH_HOLD, swappedFrom: SQUAT, limit: 'knee', mode: 'time', sec: 30, sets: 3, rest: 120 })
   })
   it('keeps the exercise, marked, when she chooses "Keep it"', () => {
     const s = { ...S(lim('knee', 'easy')), placeSwaps: withKept({}, key, 'knee', 1) }

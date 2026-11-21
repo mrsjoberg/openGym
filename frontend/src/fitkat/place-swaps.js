@@ -222,6 +222,8 @@ export function fitOf(S, routine, place) {
 
 // What a replacement takes over from the slot it stands in for: how much work, not which bar.
 const CARRIED = ['sets', 'reps', 'repsMin', 'rest', 'sg', 'note']
+// How long a hold that stands in under a limit is held, to start with.
+export const HOLD_SEC = 30
 
 /**
  * The routine as a session at `place` runs it: approved replacements in, skipped exercises out,
@@ -238,8 +240,9 @@ export function routineForPlace(S, routine, place) {
     changed = true
     // Kept under a limit: the same exercise, marked so the workout says to go easier.
     if (row.keep) { ex.push({ ...row.cfg, limit: row.limit.area }); continue }
-    const next = { id: row.to.id, swappedFrom: row.cfg.id, ...(row.limit ? { limit: row.limit.area } : {}) }
-    // A hold is counted in seconds: it takes the sets, never the reps of the lift it stands in for.
+    // A hold is counted in seconds, whether or not the catalogue marks it as one: it takes the sets,
+    // never the reps of the lift it stands in for.
+    const next = { id: row.to.id, swappedFrom: row.cfg.id, ...(row.limit ? { limit: row.limit.area } : {}), ...(row.hold ? { mode: 'time', sec: HOLD_SEC } : {}) }
     for (const k of CARRIED) if (row.cfg[k] !== undefined && !(row.hold && (k === 'reps' || k === 'repsMin'))) next[k] = row.cfg[k]
     ex.push(next)
   }
