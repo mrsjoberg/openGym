@@ -16,13 +16,19 @@
 //   Avoid     every step after the first, then "Skip it?". A one-step ladder only if it is a hold.
 //   Told to rest it (Avoid only): every exercise that loads the area is skipped. No ladder.
 //
+// Go easy and Avoid go by the rules behind the ladders (FLAGS): an area is flagged where it is the
+// main stress. Told to rest is stricter, and goes by a second opinion as well (READ: every strength
+// and body-weight exercise read one by one by an AI reviewer). What the rules flag or a reader
+// calls loaded is skipped; what the rules or a reader say it only involves, she is asked about.
+// A bench press under an elbow limit: untouched under Go easy, skipped when she was told to rest.
+//
 // Positions are fixed before anything is filtered, so Avoid never falls back to the first step.
 // Then a step is passed over when her place has no kit for it, when the routine already holds it,
 // or when it loads another of her limits.
 //
 // The reasons are coaching convention. No physiotherapist has verified them.
 import { EXIDX } from '../lib/exercises.js'
-import { FLAGS, LISTS, WHYS, TOUCHES, POOL } from './limits-data.js'
+import { FLAGS, LISTS, WHYS, TOUCHES, POOL, READ } from './limits-data.js'
 
 const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v)
 
@@ -73,16 +79,21 @@ export const withoutLimit = (map, area, now = Date.now()) => ({ ...(isMap(map) ?
 
 /* ------------------------------------------------------------ what is flagged -- */
 
-/** The areas an exercise loads, whether or not she has a limit there. */
+/** The areas an exercise loads by the rules, whether or not she has a limit there. Go easy and Avoid go by this. */
 export const areasLoaded = exId => AREAS.filter(a => FLAGS[exId]?.[CODE[a]] !== undefined)
 
-/** The areas an exercise loads or merely involves: everything it does not leave alone. */
-export const areasTouched = exId => AREAS.filter(a => FLAGS[exId]?.[CODE[a]] !== undefined || (TOUCHES[exId] || '').includes(CODE[a]) || (POOL[exId] || '').includes(CODE[a]))
+// A reviewer's reading, as area letters: what the exercise loads, and what it only involves.
+const readLoads = exId => (READ[exId] || '').split('|')[0]
+const readAll = exId => READ[exId] || ''
 
-/** The exercises that may be suggested as fill-ins: each was read one by one (scripts/fitkat/limits). */
-export const POOL_IDS = Object.keys(POOL)
-/** The areas a pool exercise touches, by the reviewer's reading or by the rules. */
-export const poolTouches = exId => AREAS.filter(a => (POOL[exId] || '').includes(CODE[a]))
+/** The areas a told-to-rest order takes an exercise out for: flagged by the rules, or loaded by a reader. */
+export const areasRested = exId => AREAS.filter(a => FLAGS[exId]?.[CODE[a]] !== undefined || readLoads(exId).includes(CODE[a]))
+
+/** The areas an exercise loads or merely involves, by the rules or a reader: everything it does not leave alone. */
+export const areasTouched = exId => AREAS.filter(a => FLAGS[exId]?.[CODE[a]] !== undefined || (TOUCHES[exId] || '').includes(CODE[a]) || readAll(exId).includes(CODE[a]))
+
+/** The exercises that may be suggested as fill-ins (scripts/fitkat/limits/fill-pool.json). */
+export const POOL_IDS = POOL
 
 // The parts of the body (the catalogue's `bodyPart`) that sit around each area. Used only for what
 // may be ADDED to a session while she rests an area: the tags are rule-derived and miss things, so
@@ -101,14 +112,17 @@ export const REGION = {
 // Told to rest wins, then Avoid, then Go easy; between equals, the order the areas are listed.
 const rank = l => (l.rest ? 0 : l.mode === 'avoid' ? 1 : 2)
 
-/** The limit that governs an exercise, { area, mode, rest, since, flag }, or null when none of hers touches it. */
+/**
+ * The limit that governs an exercise, { area, mode, rest, since, flag }, or null when none of hers touches it.
+ * An area she was told to rest also governs what only a reader calls loaded (`flag` is then undefined).
+ */
 export function limitOn(S, exId) {
-  const flags = FLAGS[exId]
-  if (!flags) return null
+  const flags = FLAGS[exId] || {}
+  const read = readLoads(exId)
   let best = null
   for (const l of limitsOf(S)) {
     const flag = flags[CODE[l.area]]
-    if (flag === undefined) continue
+    if (flag === undefined && !(l.rest && read.includes(CODE[l.area]))) continue
     if (!best || rank(l) < rank(best)) best = { ...l, flag }
   }
   return best
@@ -141,8 +155,9 @@ export function limitOffers(S, exId, { fits = () => true, exclude = [] } = {}) {
   // Jumping, running and Olympic lifts with a knee, hip or ankle limit: a smaller jump is still a jump.
   if (flag === 'x') return { limit, rest: false, offers: [] }
   if (typeof flag !== 'number') return { limit, rest: false, offers: easy ? [{ keep: true, why: flag === 't' ? KEEP_SHORTER : KEEP_EASIER }] : [] }
-  const others = limitsOf(S).filter(l => l.area !== limit.area).map(l => CODE[l.area])
-  const loadsAnother = id => others.some(c => FLAGS[id]?.[c] !== undefined)
+  // Never a step that loads another of her limits. For one she was told to rest, a reader's word counts too.
+  const others = limitsOf(S).filter(l => l.area !== limit.area)
+  const loadsAnother = id => others.some(l => FLAGS[id]?.[CODE[l.area]] !== undefined || (l.rest && readLoads(id).includes(CODE[l.area])))
   const skip = new Set([exId, ...exclude])
   const steps = LISTS[flag] || []
   const mine = easy ? steps.slice(0, 2) : steps.length > 1 ? steps.slice(1) : steps.filter(s => s[0] === 'h')

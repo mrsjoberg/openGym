@@ -9,7 +9,7 @@ F2. Each limit is "Go easy" or "Avoid".
 F3. A ladder is one ordered list. If it has a hold, the hold is the last entry.
 F4. Go easy offers entries 1 and 2, then "Skip it?".
 F5. Avoid offers the entries after entry 1, in order, then "Skip it?". A one-entry ladder goes straight to "Skip it?", unless that entry is a hold with a valid reason.
-F6. Avoid asks whether a doctor, physio or surgeon told her to rest it. If yes, every flagged exercise for that area is skipped. No tags are consulted.
+F6. Avoid asks whether a doctor, physio or surgeon told her to rest it. If yes, no ladder is consulted, and the answer goes by a second opinion as well as the rules (readings.json: every strength and body-weight exercise read one by one by an AI reviewer). An exercise the rules flag for that area, or a reading calls loaded there, is skipped. An exercise the rules or a reading say only involves the area is not removed: she is asked "Keep or skip?", and it stays in until she answers. Go easy, and Avoid without an order to rest, stay on the rules alone, so the approved ladders behave as approved (owner, 21 and 22 Nov).
 F7. "Keep it, easier" is offered under Go easy whenever nothing is left to offer, whether the ladder is empty or everything in it was filtered out. Easier means lighter where she sets the weight or band, and slower with a smaller movement where it is body weight. For a hold, easier means a shorter time (owner, 21 Nov).
 F11. Jumping and running (moderate and high impact) and Olympic lifts with a knee, hip or ankle limit get "Skip it?" under Go easy as well: a smaller jump is still a jump (owner, 21 Nov).
 F8. An accepted Go easy exercise is done at a slow tempo and keeps progressing, slowly. A short mobility block for the area is added.

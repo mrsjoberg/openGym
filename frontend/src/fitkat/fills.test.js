@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { EXIDX } from '../lib/exercises.js'
 import { setOverlay } from './brand.js'
-import { withLimit, withoutLimit, areasLoaded, poolTouches, POOL_IDS, REGION } from './limits.js'
+import { withLimit, withoutLimit, areasTouched, POOL_IDS, REGION } from './limits.js'
 import { fitsPlace, routineForPlace, sessionCount } from './place-swaps.js'
 import { areasOfExercise } from './checkin.js'
 import { fillKey, fillOf, fillSuggestions, fillEntries, withFillAdded, withFillRemoved } from './fills.js'
@@ -30,7 +30,7 @@ describe('what she can add', () => {
     expect(got.length).toBeGreaterThan(3)
     for (const { ex, why } of got) {
       expect(POOL_IDS, ex.n).toContain(ex.id)
-      expect(poolTouches(ex.id), ex.n).not.toContain('shoulder')
+      expect(areasTouched(ex.id), ex.n).not.toContain('shoulder')
       // Nothing from around the shoulder at all, whatever the tags say.
       expect(REGION.shoulder, ex.n).not.toContain(ex.bp)
       expect(fitsPlace(ex, gym), ex.n).toBe(true)
@@ -52,7 +52,7 @@ describe('what she can add', () => {
   })
   it('spares every one of her limits, not only the one she rests', () => {
     const S = { bodyLimits: withLimit(rest('shoulder').bodyLimits, 'elbow', { mode: 'easy' }, '', 2) }
-    for (const { ex } of fillSuggestions(S, push, gym)) expect(poolTouches(ex.id), ex.n).not.toContain('elbow')
+    for (const { ex } of fillSuggestions(S, push, gym)) expect(areasTouched(ex.id), ex.n).not.toContain('elbow')
   })
   it('hides what works an area she said is sore today', () => {
     const today = '2026-11-21'
@@ -96,7 +96,7 @@ describe('what she added', () => {
   it('drops an added exercise that a new limit of hers would load', () => {
     const S = rest('shoulder')
     const pick = fillSuggestions(S, push, gym)[0].ex.id
-    const area = poolTouches(pick)[0]
+    const area = areasTouched(pick)[0]
     S.placeFills = withFillAdded({}, key, pick, 1)
     if (area) {
       S.bodyLimits = withLimit(S.bodyLimits, area, { mode: 'easy' }, '', 2)

@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { EXIDX } from '../lib/exercises.js'
 import { setOverlay } from './brand.js'
-import { FLAGS, LISTS, WHYS } from './limits-data.js'
-import { AREAS, limitsOf, withLimit, withoutLimit, limitOn, limitOffers, areasLoaded, areasTouched, restInvolved, readLimit, KEEP_EASIER, KEEP_SHORTER } from './limits.js'
+import { FLAGS, LISTS, WHYS, READ, POOL } from './limits-data.js'
+import { AREAS, limitsOf, withLimit, withoutLimit, limitOn, limitOffers, areasLoaded, areasRested, areasTouched, restInvolved, readLimit, KEEP_EASIER, KEEP_SHORTER } from './limits.js'
 import { routineAtPlace, routineForPlace, swapKey, withApproved, withKept, withDeclined, withSkipped, sessionCount, restCost, approveAll, fitOf, undecidedCount } from './place-swaps.js'
 
 const byName = n => Object.values(EXIDX).find(e => e && e.n === n)?.id
@@ -234,6 +234,54 @@ describe('a routine under a limit', () => {
   it('does not let a decision made for the kit stand in for one about a limit, or the other way round', () => {
     const s = { ...S(lim('knee', 'easy')), placeSwaps: withSkipped({}, key, 1) }
     expect(at(s).state).toBe('pending')
+  })
+})
+
+describe('told to rest goes by a second opinion as well as the rules', () => {
+  // The rules flag a bench press for the shoulder only. A reader says the elbow is loaded too.
+  const gym = { id: 'gym', name: 'My gym', equipment: ['barbell', 'dumbbell', 'cable', 'leverage machine', 'bench', 'adjustable bench'], accV: 3 }
+  const CURL = byName('barbell curl')
+  const push = { id: 'push', name: 'Push Day', ex: [{ id: BENCH, sets: 3, reps: 10 }, { id: SQUAT, sets: 3, reps: 10 }] }
+  const bench = s => routineAtPlace(s, push, gym)[0]
+
+  it('reads every exercise it names, with letters that are areas', () => {
+    for (const [id, v] of Object.entries(READ)) {
+      expect(EXIDX[id], id).toBeTruthy()
+      expect(v, id).toMatch(/^[abehknsw]*\|[abehknsw]*$/)
+    }
+    for (const id of POOL) expect(EXIDX[id], id).toBeTruthy()
+  })
+  it('leaves Go easy and Avoid on the rules', () => {
+    expect(areasLoaded(BENCH)).not.toContain('elbow')
+    expect(areasRested(BENCH)).toEqual(expect.arrayContaining(['shoulder', 'elbow']))
+    expect(limitOn(S(lim('elbow', 'easy')), BENCH)).toBe(null)
+    expect(limitOn(S(lim('elbow', 'avoid')), BENCH)).toBe(null)
+    expect(bench(S(lim('elbow', 'avoid'))).state).toBe('fits')
+  })
+  it('skips what a reader calls loaded once she was told to rest', () => {
+    const s = S(lim('elbow', 'avoid', true))
+    expect(limitOn(s, BENCH)).toMatchObject({ area: 'elbow', rest: true })
+    expect(limitOffers(s, BENCH)).toMatchObject({ rest: true, offers: [] })
+    expect(bench(s)).toMatchObject({ state: 'skipped', rest: true })
+    expect(routineForPlace(s, push, gym).ex.map(e => e.id)).not.toContain(BENCH)
+    expect(restCost(S({}), [push], gym, 'elbow').skipped).toBe(1)
+  })
+  it('lets the rested area win over a gentler limit the rules flag', () => {
+    const both = { ...lim('shoulder', 'easy'), ...lim('elbow', 'avoid', true) }
+    expect(limitOn(S(both), BENCH)).toMatchObject({ area: 'elbow', rest: true })
+  })
+  it('never offers a step a reader says loads an area she rests', () => {
+    // A hip limit on the squat, while she rests each other area in turn.
+    for (const area of AREAS.filter(a => a !== 'hip' && a !== 'knee')) {
+      const s = S({ ...lim('hip', 'easy'), ...lim(area, 'avoid', true) })
+      const o = limitOffers(s, SQUAT)
+      if (o.rest) continue
+      for (const x of o.offers) if (x.id) expect(areasRested(x.id), EXIDX[x.id].n).not.toContain(area)
+    }
+  })
+  it('still skips what the rules flag, whatever a reader says', () => {
+    expect(areasLoaded(CURL)).toContain('elbow')
+    expect(limitOn(S(lim('elbow', 'avoid', true)), CURL)).toMatchObject({ area: 'elbow', rest: true })
   })
 })
 

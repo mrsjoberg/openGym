@@ -21,8 +21,16 @@ the media.
 - `approved-ladders.json`: the 58 ladders the owner approved exercise by exercise for the built-in
   programmes. `moves.py` checks that the movement ladders still reproduce every one of them.
 - `rules.md`: the rules the ladders and the app follow.
+- `readings.json`: a second opinion. Every strength and body-weight exercise (3,886) read one by one by
+  an AI reviewer from its name and written steps: the areas it loads, a bar, the areas it only involves,
+  as area letters (n neck, s shoulder, e elbow, w wrist, b lower back, h hip, k knee, a ankle). The app uses
+  it for an area she was told to rest and for what may be added to a session, never for a ladder. Two
+  readers of the same 738 exercises agreed on 94% of exercise-and-area judgements and listed exactly the
+  same areas for 63% of exercises, so it is an opinion, not a measurement.
+- `fill-pool.json`: the ids of about 300 well-known exercises that "Build your own" suggests from.
 - `export.py`: writes the data file.
 
-What this is not: the tags are rule-derived and were not reviewed one by one. The reasons beside
-each step are coaching convention, checked by AI reviewers against the catalogue's written steps.
+What this is not: the tags behind the ladders are rule-derived. The readings were made by AI reviewers,
+not by a person. The reasons beside each step are coaching convention, checked by AI reviewers against
+the catalogue's written steps.
 No physiotherapist has verified them.
