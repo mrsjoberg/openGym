@@ -1,7 +1,7 @@
 # FitKat's wordmark and app icon
 
 The brand chosen on 22 Nov: the wordmark in ivory on forest green ("Fit" upright, "Kat" in italic,
-a full stop in rose) and, as the app icon, an ivory F and italic K on forest with the same rose stop.
+a full stop in orange) and, as the app icon, an ivory F and italic K on forest with the same orange stop.
 Set in Cormorant Garamond, the display face the app ships (`frontend/src/fitkat/fonts`).
 
 - `outline.py` outlines the letters from those font files and writes `wordmark.svg`, `icon.svg`,
@@ -15,4 +15,4 @@ In the app the wordmark is live text (`frontend/src/fitkat/Wordmark.jsx`, `.fk-w
 
 Not done: the Android and iPhone launch screens and store icons (`frontend/android`, `frontend/ios`,
 `frontend/public/app-icons`) are still openGym's. Colours: ivory `#f8f6f0`, forest `#405849`,
-rose `#b48276`, rose deep `#8a5548` (the stop on ivory, for contrast).
+orange `#b5713a` (the theme's `--orange`; the stop, on forest and on ivory alike).

@@ -2,8 +2,8 @@
 
 Writes, into the folder given as the first argument (default: this one):
   wordmark.svg         "Fit" upright, "Kat" italic, a full stop, as three paths (classes fit, kat, dot)
-  wordmark-boot.html   the same in ivory and rose, as the boot screen's markup in frontend/index.html
-  icon.svg             the app icon: F and italic K in ivory on forest, the stop in rose
+  wordmark-boot.html   the same in ivory and orange, as the boot screen's markup in frontend/index.html
+  icon.svg             the app icon: F and italic K in ivory on forest, the stop in orange
   badge.svg            the monogram alone in white, for the notification badge
 Needs fonttools, brotli and uharfbuzz. The PNG files are drawn from the SVGs by a browser (see README).
 """
@@ -15,7 +15,7 @@ from fontTools.pens.transformPen import TransformPen
 HERE = os.path.dirname(os.path.abspath(__file__))
 FONTS = os.environ.get('FITKAT_FONTS') or os.path.join(HERE, '..', '..', '..', 'frontend', 'src', 'fitkat', 'fonts')
 OUT = sys.argv[1] if len(sys.argv) > 1 else HERE
-IVORY, FOREST, ROSE, ROSE_DEEP, INK = '#f8f6f0', '#405849', '#b48276', '#8a5548', '#303c35'
+IVORY, FOREST, ORANGE = '#f8f6f0', '#405849', '#b5713a'   # the theme's --orange (fitkat/theme.css)
 UPRIGHT, ITALIC = 'cormorant-garamond-latin-wght-normal.woff2', 'cormorant-garamond-latin-wght-italic.woff2'
 
 def load(name, wght):
@@ -61,10 +61,10 @@ fit, kat, dot, w = wordmark()
 vb = f'-2 -72 {w + 4:.0f} 76'
 open(os.path.join(OUT, 'wordmark.svg'), 'w').write(
     f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{vb}" role="img" aria-label="FitKat">'
-    f'<path class="fit" fill="{FOREST}" d="{fit}"/><path class="kat" fill="{FOREST}" d="{kat}"/><path class="dot" fill="{ROSE_DEEP}" d="{dot}"/></svg>\n')
+    f'<path class="fit" fill="{FOREST}" d="{fit}"/><path class="kat" fill="{FOREST}" d="{kat}"/><path class="dot" fill="{ORANGE}" d="{dot}"/></svg>\n')
 open(os.path.join(OUT, 'wordmark-boot.html'), 'w').write(
     f'  <svg viewBox="{vb}">\n    <path class="w" fill="{IVORY}" d="{fit}"/>\n    <path class="w w2" fill="{IVORY}" d="{kat}"/>\n'
-    f'    <g class="dot"><path class="db" fill="{ROSE}" d="{dot}"/></g>\n  </svg>\n')
+    f'    <g class="dot"><path class="db" fill="{ORANGE}" d="{dot}"/></g>\n  </svg>\n')
 
 S = 512
 f, k, d, mw = monogram(S * 0.52)
@@ -73,7 +73,7 @@ base = S / 2 + S * 0.52 * 0.63 / 2            # cap height centred
 move = f'translate({x0:.1f} {base:.1f})'
 open(os.path.join(OUT, 'icon.svg'), 'w').write(
     f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {S} {S}" role="img" aria-label="FitKat">'
-    f'<rect width="{S}" height="{S}" fill="{FOREST}"/><g transform="{move}"><path fill="{IVORY}" d="{f}"/><path fill="{IVORY}" d="{k}"/><path fill="{ROSE}" d="{d}"/></g></svg>\n')
+    f'<rect width="{S}" height="{S}" fill="{FOREST}"/><g transform="{move}"><path fill="{IVORY}" d="{f}"/><path fill="{IVORY}" d="{k}"/><path fill="{ORANGE}" d="{d}"/></g></svg>\n')
 B = 96
 f, k, d, mw = monogram(B * 0.62)
 open(os.path.join(OUT, 'badge.svg'), 'w').write(

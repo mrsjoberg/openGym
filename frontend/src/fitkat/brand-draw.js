@@ -1,8 +1,8 @@
-// FitKat's wordmark on a share image: ivory letters and a rose full stop on a forest block,
+// FitKat's wordmark on a share image: ivory letters and an orange full stop on a forest block,
 // whatever the paper. Called by lib/card-draw.js drawBrand in place of openGym's lockup; `y` is the
 // text's baseline, as there. The site address openGym prints at the other end has no FitKat
 // counterpart, so nothing is drawn there.
-const FOREST = '#405849', IVORY = '#f8f6f0', ROSE = '#b48276'
+const FOREST = '#405849', IVORY = '#f8f6f0', ORANGE = '#b5713a'   // the theme's --orange
 const FAMILY = "'Cormorant Garamond', Georgia, 'Times New Roman', serif"
 
 // A canvas does not wait for a web font, so both faces are asked for ahead of the first drawing.
@@ -45,7 +45,7 @@ export function drawWordmark(ctx, { x, y, size = 40 }) {
   ctx.fillText('Kat', tx, y)
   tx += box.kat
   ctx.font = `500 ${box.px}px ${FAMILY}`
-  ctx.fillStyle = ROSE
+  ctx.fillStyle = ORANGE
   ctx.fillText('.', tx, y)
   ctx.restore()
 }
