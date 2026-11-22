@@ -35,7 +35,10 @@ const reason = (row, s) => [
   ft('{0} sets kept', row.cfg.sets || 0),
 ].join(', ') + '.'
 
-function Row({ S, place, routine, row, write }) {
+// A row she has not answered yet: a suggestion, the skip question, or "Keep or skip?".
+const waits = row => row.state === 'pending' || row.state === 'ask-rest'
+
+function Row({ S, place, routine, row, write, open, onOpen }) {
   const key = swapKey(place.id, routine.id, row.cfg.id)
   const from = nameOf(row.ex)
   // A row about a limit: its decisions carry the area, and its reasons come from the ladder.
@@ -57,6 +60,11 @@ function Row({ S, place, routine, row, write }) {
       picker.close()
     }, { title: ft('Instead of {0}', from), like: row.cfg.id })
   }
+  // One question at a time: the others wait as a line each, and a tap opens one.
+  if (waits(row) && !open) return <button type="button" className="fk-swap done fk-swap-wait" onClick={onOpen}>
+    <span className="fk-swap-names">{lim && <span className="fk-tag">{limitTag(row.limit)}</span>}<span className="fk-swap-to">{from}</span></span>
+    <span className="fk-prog-about">{ft('Waiting')}</span>
+  </button>
   // It only involves an area she was told to rest: kept unless she says otherwise.
   if (row.state === 'ask-rest') return <div className="fk-swap open">
     <div className="fk-swap-names"><span className="fk-swap-to">{from}</span></div>
@@ -168,6 +176,11 @@ export function SwapReview({ place, onDone, only, onWhole }) {
   const total = groups.reduce((n, g) => n + g.rows.length, 0)
   const left = undecidedCount(S, routines, place)
   // Sessions she has dropped for now keep their place in the list, with the way back.
+  // The first unanswered row is open; she can open another by tapping it.
+  const [picked, setPicked] = useState(null)
+  const idOf = (g, row) => g.routine.id + '/' + row.cfg.id
+  const waiting = groups.flatMap(g => g.rows.filter(waits).map(row => idOf(g, row)))
+  const openId = waiting.includes(picked) ? picked : waiting[0]
   const dropped = droppedList(S)
   const blocks = routines.map(r => groups.find(g => g.routine.id === r.id) || dropped.find(d => d.routine.id === r.id)).filter(Boolean)
   const more = only ? undecidedCount(S, S.routines, place) - left : 0
@@ -185,7 +198,8 @@ export function SwapReview({ place, onDone, only, onWhole }) {
     {blocks.map(g => (g.rows ? <div key={g.routine.id} className="fk-swap-group">
       <h4 className="sec">{g.routine.name}</h4>
       <RestLine S={S} routine={g.routine} place={place} writeFills={writeFills} onDrop={lim => update(s => { dropSession(s, g.routine.id, lim) })} />
-      {g.rows.map(row => <Row key={row.cfg.id} S={S} place={place} routine={g.routine} row={row} write={write} />)}
+      {g.rows.map(row => <Row key={row.cfg.id} S={S} place={place} routine={g.routine} row={row} write={write}
+        open={idOf(g, row) === openId} onOpen={() => setPicked(idOf(g, row))} />)}
     </div> : <div key={g.routine.id} className="fk-swap-group">
       <h4 className="sec">{g.routine.name}</h4>
       <div className="fk-fill">

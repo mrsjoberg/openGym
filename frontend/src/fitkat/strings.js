@@ -93,6 +93,7 @@ const RU = {
   'Your places, and what each one has.': 'Ваши места и что в каждом есть.',
   'No programme for now': 'Пока без программы',
   'Settings': 'Настройки',
+  'Waiting': 'Ждёт',
   'Ivory': 'Слоновая кость',
   'Forest green': 'Тёмно-зелёный',
   'built on openGym v{0}': 'на основе openGym v{0}',

@@ -159,3 +159,7 @@
 .fk-wordmark em{font-style:italic}
 .fk-wordmark i{font-style:normal;color:#e06a00}
 .fk-wordmark.on-forest{background:#405849;color:#f8f6f0;padding:.26em .5em .32em;border-radius:.2em}
+
+/* A review row that waits its turn: the whole line opens it. */
+.fk-swap-wait{width:100%;appearance:none;background:none;border:0;border-bottom:1px solid var(--sep);font:inherit;color:inherit;text-align:start;cursor:pointer}
+.fk-swap-wait .fk-prog-about{flex:none}
