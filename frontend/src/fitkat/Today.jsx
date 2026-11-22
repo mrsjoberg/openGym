@@ -34,6 +34,8 @@ export default function Today({ day, gear }) {
   const { places, place, pick } = usePlacePick()
   const training = day.plain && !day.active && !day.done && day.routines.length > 0
   const rows = training ? todayRows(S, day.routines.map(r => routineHere(S, r) || r), todayISO()) : []
+  // The row the tour points at for "The small labels": the first one that carries a label, else the first.
+  const labelled = Math.max(0, rows.findIndex(r => r.tags.length > 0))
   let title, sub = ''
   if (day.active) title = titled(day.editing ? '{0}, *being edited*.' : '{0}, *in progress*.', day.active.name || ft('Workout'))
   else if (!day.plain) title = titled('Today.')
@@ -48,18 +50,21 @@ export default function Today({ day, gear }) {
     <div className="fk-today-top">
       <Wordmark size={24} />
       <span className="fk-today-tools">
-        {places.length > 0 && <button type="button" className="fk-place-menu" onClick={pick} aria-label={ft('Training at {0}, change place', place ? place.name : '')}>
+        {places.length > 0 && <button type="button" className="fk-place-menu" data-tour="fk-place" onClick={pick} aria-label={ft('Training at {0}, change place', place ? place.name : '')}>
           <span>{place ? place.name : ft('Choose a place')}</span><Icon name="chevronDown" />
         </button>}
         {gear}
       </span>
     </div>
-    <div className="fk-eyebrow">{day.date}</div>
-    <h1 className="fk-today-title">{title}</h1>
-    {sub && <p className="fk-today-sub">{sub}</p>}
+    {/* data-tour: what FitKat's tour points at (fitkat/tour.js). */}
+    <div className="fk-today-head" data-tour="fk-today">
+      <div className="fk-eyebrow">{day.date}</div>
+      <h1 className="fk-today-title">{title}</h1>
+      {sub && <p className="fk-today-sub">{sub}</p>}
+    </div>
     <PlaceNotes />
     {rows.length > 0 && <ul className="fk-today-list">
-      {rows.map((row, i) => <li key={row.id + '-' + i}>
+      {rows.map((row, i) => <li key={row.id + '-' + i} data-tour={i === labelled ? 'fk-tags' : undefined}>
         <div className="fk-today-ex">
           <span className="fk-today-name">{exerciseNameText(row.ex)}</span>
           {row.tags.length > 0 && <span className="fk-today-tags">{row.tags.map(tag => <span key={tag.kind} className="fk-tag">{tagText(tag)}</span>)}</span>}

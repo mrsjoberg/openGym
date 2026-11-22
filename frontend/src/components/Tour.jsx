@@ -28,6 +28,8 @@ import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
 import { PRESETS, presetOf, applyPreset } from '../lib/modules.js'
 import { presetCopy } from '../lib/modules-copy.js'
+import { overlayOn } from '../fitkat/brand.js'
+import { FK_COPY, fitkatProfile, fitkatOfferLine } from '../fitkat/tour.js'
 import './Tour.css'
 
 // What each stop says. Literal t() calls, so check-source-strings sees every one.
@@ -150,6 +152,7 @@ const profileOf = S => ({
   swipe: !!workoutControls(S).swipeSets && (S.workoutView || 'cards') !== 'focus',
   balance: S.workouts.length > 0 || S.routines.some(r => r.ex?.length),
   workouts: S.workouts.length > 0,
+  ...(overlayOn() ? fitkatProfile(S) : null),
 })
 
 /* ---------------- the sandboxes ---------------- */
@@ -297,7 +300,8 @@ function Question({ kind, at }) {
   return <div className="tour tour-ask">
     <div className="tour-block tour-dim" />
     <div className="tour-card tour-center" ref={cardRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="tour-t" aria-describedby="tour-b">
-      {!resume && <>
+      {/* FitKat decides what is on, so it asks about the tour alone (owner, 22 Nov). */}
+      {!resume && !overlayOn() && <>
         <h2 id="tour-m">{t('How much app do you want?')}</h2>
         <div className="tour-list tour-presets" role="radiogroup" aria-labelledby="tour-m">
           {PRESETS.map(p => <button key={p.id} type="button" role="radio" aria-checked={preset === p.id} className="tour-tut tour-pick" data-preset={p.id} onClick={() => pick(p.id)}>
@@ -307,8 +311,8 @@ function Question({ kind, at }) {
         </div>
         <p className="tour-pick-f">{t('Change it anytime in Settings → Modules.')}</p>
       </>}
-      <h2 id="tour-t" className={resume ? '' : 'tour-q2'}>{resume ? t('Finish the tour?') : t('Want a 1-minute tour?')}</h2>
-      <p id="tour-b">{resume ? t('You stopped halfway. Want to see the rest?') : t('We’ll point at the good bits on the real screens. Bail out anytime.')}</p>
+      <h2 id="tour-t" className={resume || overlayOn() ? '' : 'tour-q2'}>{resume ? t('Finish the tour?') : t('Want a 1-minute tour?')}</h2>
+      <p id="tour-b">{resume ? t('You stopped halfway. Want to see the rest?') : overlayOn() ? fitkatOfferLine() : t('We’ll point at the good bits on the real screens. Bail out anytime.')}</p>
       <div className="tour-acts">
         <Button onClick={no}>{resume ? t('No thanks') : t('Skip')}</Button>
         <Button variant="primary" onClick={yes}>{resume ? t('Continue') : t('Show me')}</Button>
@@ -345,7 +349,7 @@ function Run({ at, flow = 'tour' }) {
   const insets = useMemo(() => safeInsets(), [])
   const reduced = useMemo(reducedMotion, [])
   const step = steps[i]
-  const [title, body] = (COPY[step.id] || (() => [step.id, '']))()
+  const [title, body] = (FK_COPY[step.id] || COPY[step.id] || (() => [step.id, '']))()
   const tutorial = flow !== 'tour'
 
   // What the stops' rules read (lib/tour.js until / lost / skip).
@@ -400,7 +404,8 @@ function Run({ at, flow = 'tour' }) {
       // name on the screen being left is not the one this stop means.
       if (route && pathRef.current !== route && Date.now() - started < anchorWait) { tm = setTimeout(look, 30); return }
       const el = findAnchor(step.anchor)
-      if (!el && step.anchor && Date.now() - started < anchorWait) { tm = setTimeout(look, 60); return }
+      // `soft` (fitkat/tour.js): an element that may not be there today is waited for only briefly.
+      if (!el && step.anchor && Date.now() - started < (step.soft ? Math.min(anchorWait, 240) : anchorWait)) { tm = setTimeout(look, 60); return }
       if (step.skip && passOver(step, ctxNow())) { go(dirRef.current); return }
       // Not there after all: an optional stop is passed over, any other one speaks from the middle.
       if (!el && step.anchor && step.optional) { go(dirRef.current); return }
@@ -551,7 +556,8 @@ function Run({ at, flow = 'tour' }) {
   const what = nameOf(anchorRef.current)
   // Between stops, and for a moment while the element scrolls into view, the card waits unseen
   // rather than flashing up in the middle.
-  const settling = !ready || (step.anchor && !rect && Date.now() - shownAt.current < 700)
+  // A soft stop whose element is not on screen today has nothing to wait for.
+  const settling = !ready || (step.anchor && !rect && !(step.soft && !anchorRef.current) && Date.now() - shownAt.current < 700)
   const counter = <span className="tour-count">{t('Step {0} of {1}', i + 1, steps.length)}</span>
   const skip = !last && <button type="button" className="tour-skip" onClick={() => finish(false)}>{tutorial ? t('Skip') : t('Skip tour')}</button>
   const routine = step.commit ? useStore.getState().S.routines.find(r => r.id === madeRef.current) : null

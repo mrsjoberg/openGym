@@ -128,3 +128,7 @@
 :root[data-theme="light"] .wk-nav>.btn:disabled{opacity:.35}
 /* The rest clock in the display face. */
 :root[data-theme="light"] #timer .t{font-family:var(--ff-display);font-weight:500;font-size:2rem;letter-spacing:-.01em}
+/* The tour (components/Tour.css, loaded when it opens): square corners and the display face, like the rest. */
+:root[data-theme="light"] .tour-hole,:root[data-theme="light"] .tour-ring{border-radius:2px}
+:root[data-theme="light"] .tour-card{border-radius:2px}
+:root[data-theme="light"] .tour-card h2{font-family:var(--ff-display);font-weight:500;font-size:1.5rem;letter-spacing:-.01em}

@@ -13,7 +13,7 @@ import { formulaOf, FORMULA_NAMES } from '../lib/onerm.js'
 import { copyText } from '../lib/clipboard.js'
 import { useUI } from '../store/useUI.js'
 import { activeGym, gymLabel, switchGym } from '../lib/gym-inventory.js'
-import { startTour, TUTORIALS, TUTORIAL_COPY, tutorialDone } from '../lib/tour.js'
+import { startTour, tutorialsShown, TUTORIAL_COPY, tutorialDone } from '../lib/tour.js'
 import { ACCENTS, ACCENT_NAMES, todayISO, localTZ, weekStartOf, MONDAY, SUNDAY, fmtPlate } from '../lib/format.js'
 import { inventoryFor, ownsPlates } from '../lib/plates.js'
 import { BAR_TYPES, ownBarDefault } from '../lib/bar.js'
@@ -1314,7 +1314,7 @@ export default function Settings({ page = null, find = null, via = null, entryKe
       <Section title={t('Tutorials')}>
         <Row icon="lightbulb" iconTint="var(--yellow)" title={t('Show the tour again')} subtitle={t('A one-minute walk around the app')} accessory="chevron"
           onClick={() => (useStore.getState().S.active ? toast(t('Finish your workout first, then the tour is all yours.')) : startTour())} />
-        {TUTORIALS.map(f => {
+        {tutorialsShown().map(f => {
           const [title, sub] = TUTORIAL_COPY[f]()
           return <Row key={f} icon={TUTORIAL_ICON[f]} iconTint="var(--yellow)" title={title} subtitle={sub} accessory="chevron"
             value={tutorialDone(f) ? t('Done') : null}
