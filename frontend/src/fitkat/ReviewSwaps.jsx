@@ -35,8 +35,9 @@ const reason = (row, s) => [
   ft('{0} sets kept', row.cfg.sets || 0),
 ].join(', ') + '.'
 
-// A row she has not answered yet: a suggestion, the skip question, or "Keep or skip?".
-const waits = row => row.state === 'pending' || row.state === 'ask-rest'
+// A row she has not answered yet: a suggestion, the skip question, or "Keep or skip?". The same
+// rows undecidedCount counts (place-swaps.js).
+const waits = row => row.state !== 'approved' && row.state !== 'skipped' && row.state !== 'kept'
 
 function Row({ S, place, routine, row, write, open, onOpen }) {
   const key = swapKey(place.id, routine.id, row.cfg.id)
