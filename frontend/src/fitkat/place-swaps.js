@@ -31,6 +31,7 @@ import { limitOn, limitOffers, limitsOf, withLimit, restInvolved } from './limit
 import { isDropped } from './drops.js'
 import { fillEntries } from './fills.js'
 import { mobilityEntries } from './mobility.js'
+import { withFinishers } from './bone.js'
 
 const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v)
 const list = v => (Array.isArray(v) ? v : [])
@@ -271,8 +272,11 @@ export function currentPlace(S) {
   return id == null ? null : list(S?.equipProfiles).find(p => p && p.id === id) || null
 }
 
-/** buildSessionEntries' hook: the routine for where she is training now. */
-export const routineHere = (S, routine) => routineForPlace(S, routine, currentPlace(S))
+/**
+ * buildSessionEntries' hook: the routine for where she is training now, with the bone and
+ * balance finishers she added at its end (bone.js).
+ */
+export const routineHere = (S, routine) => withFinishers(S, routineForPlace(S, routine, currentPlace(S)))
 
 /* ------------------------------------------------------- told to rest it -- */
 

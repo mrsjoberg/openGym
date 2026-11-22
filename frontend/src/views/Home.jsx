@@ -39,6 +39,7 @@ import { ChallengesCard } from '../components/Challenges.jsx'
 import { isOn } from '../lib/modules.js'
 import { appName, overlayOn } from '../fitkat/brand.js'
 import PlaceBar from '../fitkat/PlaceBar.jsx'
+import { BoneLine } from '../fitkat/BoneBalance.jsx'
 import FitkatRecovery from '../fitkat/SoreHint.jsx'
 
 // Home = what to do now + a quick glance. Deep charts & history live in Stats.
@@ -145,6 +146,8 @@ export default function Home() {
     </div>
     <TrainerNotice />
     {overlayOn() && <PlaceBar />}
+    {/* FitKat: this week's bone and balance goals, one tap from their screen (fitkat/BoneBalance.jsx). */}
+    <BoneLine />
 
     <div className="card">
       {/* A running programme (lib/programmes.js) wrote this week's plan: where it stands, one tap from its screen. */}

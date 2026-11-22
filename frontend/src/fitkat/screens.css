@@ -144,4 +144,12 @@
 .fk-fill{display:flex;flex-direction:column;padding-bottom:6px;border-bottom:1px solid var(--sep)}
 .fk-fill>.fk-link{align-self:flex-start}
 .fk-fill>.btn{margin:8px 0 4px}
+.fk-bone-count{margin-inline-start:auto;font-size:.8125rem;color:var(--label-2);white-space:nowrap}
+.fk-dots{display:flex;gap:6px;padding:2px 0 8px}
+.fk-dots i{width:22px;height:6px;background:var(--sep)}
+.fk-dots i.on{background:var(--acc)}
+.fk-bone-step{display:flex;gap:8px}
+.fk-bone-walk{border-top:0;border-bottom:1px solid var(--sep);margin-top:8px}
+.fk-bone-btn{margin:10px 0 4px;width:100%}
+.fk-bone-sec{margin-top:26px}
 .fk-fill .fk-swap.done{border-bottom:0;min-height:52px}

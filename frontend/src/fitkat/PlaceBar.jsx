@@ -11,6 +11,7 @@ import { switchGym } from '../lib/gym-inventory.js'
 import { menuSheet, fitkatCheckinSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { limitsOf, AREA_LABEL } from './limits.js'
+import { FINISHER_LABEL, FINISHER_HINT } from './BoneBalance.jsx'
 import { limitTag } from './Limits.jsx'
 import { ft } from './strings.js'
 import { kitSummary, placesOf } from './places.js'
@@ -84,6 +85,11 @@ export function SwappedNote({ entry }) {
   if (entry?.mobility) return <div className="fk-swapped-note">
     <span className="fk-tag">{ft('Mobility')} · {ft(AREA_LABEL[entry.mobility])}</span>
     <span>{ft('Ten slow reps, on each side where there are two. Only as far as is comfortable.')}</span>
+  </div>
+  // A bone and balance finisher (bone.js): which one, and how to do it.
+  if (entry?.finisher && FINISHER_LABEL[entry.finisher]) return <div className="fk-swapped-note">
+    <span className="fk-tag">{ft(FINISHER_LABEL[entry.finisher])}</span>
+    <span>{ft(FINISHER_HINT[entry.finisher])}</span>
   </div>
   // Slower progress under a limit (go-easy.js): a lighter target the first time, or once more as last time.
   const easy = limit ? entry?.plan?.easy : null

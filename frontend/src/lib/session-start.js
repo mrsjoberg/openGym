@@ -315,7 +315,7 @@ export function buildSessionEntries(st, r) {
   const entries = (here ? here.ex : []).map(cfg => {
     const { deload, ...built } = buildPlannedEntry(st, cfg, r, { noProg })
     // A programme's deload week stays out of progression, as a deload routine does.
-    return { id: cfg.id, sg: cfg.sg, ...built, ...(cfg.swappedFrom ? { swappedFrom: cfg.swappedFrom } : {}), ...(cfg.limit ? { limit: cfg.limit } : {}), ...(cfg.mobility ? { mobility: cfg.mobility } : {}), ...(noProg || deload ? { noProg: true } : {}) }
+    return { id: cfg.id, sg: cfg.sg, ...built, ...(cfg.swappedFrom ? { swappedFrom: cfg.swappedFrom } : {}), ...(cfg.limit ? { limit: cfg.limit } : {}), ...(cfg.mobility ? { mobility: cfg.mobility } : {}), ...(cfg.finisher ? { finisher: cfg.finisher } : {}), ...(noProg || deload ? { noProg: true } : {}) }
   })
   // The rows a coach or planner set for this routine on this day (#972, lib/session-targets.js),
   // in place of the prescription's; the routine and its targets stay what they built.

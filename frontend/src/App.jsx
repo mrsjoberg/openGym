@@ -74,6 +74,7 @@ import { lightOnly, overlayOn, PAGE_COLOR } from './fitkat/brand.js'
 import FitkatOnboarding from './fitkat/Onboarding.jsx'
 import FitkatPlaces from './fitkat/Places.jsx'
 import FitkatLimits from './fitkat/Limits.jsx'
+import FitkatBoneBalance from './fitkat/BoneBalance.jsx'
 import FitkatProgrammeLibrary from './fitkat/ProgrammeLibrary.jsx'
 import FitkatReviewSwaps from './fitkat/ReviewSwaps.jsx'
 import PermissionSteps from './views/PermissionSteps.jsx'
@@ -407,6 +408,7 @@ function Shell() {
     <Routes location={l}>
       <Route path="/places" element={<FitkatPlaces />} />
       <Route path="/limits" element={<FitkatLimits />} />
+      <Route path="/bone" element={<FitkatBoneBalance />} />
       <Route path="/swaps" element={<FitkatReviewSwaps />} />
       <Route path="/plan/library" element={<FitkatProgrammeLibrary />} />
       <Route path="/home" element={<Home />} />
