@@ -110,6 +110,16 @@ export function kitSummary(place, label = s => s) {
   return names.length ? names.slice(0, 4).join(', ') + (names.length > 4 ? ' …' : '') : label('Bodyweight only')
 }
 
+/** The kit in words, the preset's name in front when it is one: "Home basics: Dumbbells, Kettlebell, Resistance bands". */
+export function kitDetail(place, label = s => s) {
+  const eq = profileEquipment(place)
+  const preset = presetOf(eq)
+  const names = KIT_CHIPS.filter(c => hasChip(eq, c) && !(c.id === 'bench' && eq.includes('adjustable bench'))).map(c => label(c.label))
+  const words = names.length ? names.slice(0, 5).join(', ') + (names.length > 5 ? ' …' : '') : ''
+  if (preset) return label(PRESET_LABEL[preset]) + (words ? ': ' + words : '')
+  return words || label('Bodyweight only')
+}
+
 /** A new place of `kind`, named `name`, starting from that kind's preset. */
 export function makePlace(kind, name) {
   const def = PLACE_KINDS.find(k => k.kind === kind) || PLACE_KINDS[0]

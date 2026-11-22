@@ -6,13 +6,16 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useLang } from '../lib/i18n.js'
 import { ACC_V, profileEquipment } from '../lib/equipment.js'
-import { switchGym } from '../lib/gym-inventory.js'
+import { applyAutoGym } from '../lib/gym-auto.js'
+import { MOBILE } from '../lib/mobile.js'
 import { confirmSheet, menuSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
-import { Row, Section } from '../components/ui.jsx'
+import { Row, Section, Switch } from '../components/ui.jsx'
 import { ft } from './strings.js'
 import KitPicker from './KitPicker.jsx'
-import { PLACE_KINDS, addPlaces, kitSummary, makePlace, placesOf, removePlace } from './places.js'
+import { PLACE_KINDS, addPlaces, kitDetail, makePlace, placesOf, removePlace } from './places.js'
+import { skippedKeys, swappedCount, withRestored } from './place-swaps.js'
+import { switchPlace } from './place-switch.jsx'
 
 /** The row in Settings → Equipment that leads here. */
 export function PlacesLink() {
@@ -68,6 +71,8 @@ export default function Places() {
       {places.map(p => {
         const here = p.id === S.activeEquipId
         const open = editing === p.id
+        const swapped = swappedCount(S, S.routines, p)
+        const skipped = skippedKeys(S, S.routines, p)
         return <div key={p.id} className="fk-place">
           <div className="fk-place-top">
             <span className="fk-place-name">{p.name}</span>
@@ -75,19 +80,44 @@ export default function Places() {
             <span style={{ flex: 1 }} />
             <button type="button" className="fk-link" onClick={() => setEditing(open ? null : p.id)}>{open ? ft('Done') : ft('Edit kit')}</button>
           </div>
-          <div className="fk-prog-about">{kitSummary(p, ft)}</div>
+          <div className="fk-prog-about">{kitDetail(p, ft)}</div>
+          {swapped > 0 && <div className="fk-limit-row">
+            <span>{swapped === 1 ? ft('1 approved swap') : ft('{0} approved swaps', swapped)}</span>
+            <button type="button" className="fk-link" onClick={() => nav('/swaps?place=' + encodeURIComponent(p.id))}>{ft('Review')}</button>
+          </div>}
+          {skipped.length > 0 && <div className="fk-limit-row">
+            <span>{skipped.length === 1 ? ft('1 skipped exercise') : ft('{0} skipped exercises', skipped.length)}</span>
+            <button type="button" className="fk-link" onClick={() => update(s => { s.placeSwaps = withRestored(s.placeSwaps, skipped) })}>{ft('Restore')}</button>
+          </div>}
           {open && <>
             <input className="input" defaultValue={p.name} aria-label={ft('Name')} maxLength={40}
               onChange={e => { const v = e.target.value.trim(); if (v) update(s => { const x = placesOf(s).find(y => y.id === p.id); if (x) { x.name = v; x._ts = Date.now() } }) }} />
             <KitPicker equipment={profileEquipment(p)} onChange={eq => setKit(p.id, eq)} />
           </>}
           <div className="fk-place-actions">
-            {!here && <button type="button" className="fk-link" onClick={() => update(s => { switchGym(s, p.id) })}>{ft('Train here')}</button>}
+            {!here && <button type="button" className="fk-link" onClick={() => switchPlace(p)}>{ft('Train here')}</button>}
             {places.length > 1 && <button type="button" className="fk-link dim" onClick={() => remove(p)}>{ft('Remove')}</button>}
           </div>
         </div>
       })}
       <button type="button" className="fk-link" style={{ alignSelf: 'flex-start', marginTop: 8 }} onClick={add}>{ft('Add a place')}</button>
     </div>
+    <h4 className="sec fk-places-sec">{ft('Switching')}</h4>
+    <div className="fk-limit-row">
+      <span id="fk-ask-place">{ft('Ask where I am training when I start a session')}</span>
+      <Switch checked={S.fitkatAskPlace !== false} onChange={v => update(s => { s.fitkatAskPlace = v })} aria-labelledby="fk-ask-place" />
+    </div>
+    <div className="fk-limit-row">
+      <span id="fk-auto-place">{ft('Switch by itself when I arrive at a saved gym')}</span>
+      <Switch checked={S.fitkatAutoPlace === true} onChange={v => update(s => { s.fitkatAutoPlace = v })} aria-labelledby="fk-auto-place" />
+    </div>
+    {/* Arriving is the phone's to notice (lib/gym-auto.js, through the gym reminder's places). A browser
+        has no such thing, so there the arrival is pretended, through the same code a real one runs. */}
+    {S.fitkatAutoPlace === true && (MOBILE
+      ? <p className="fk-swap-why">{ft('It follows the places you save under Settings, Gym reminder.')}</p>
+      : <div className="fk-pretend">
+        <p className="fk-swap-why">{ft('A browser cannot tell where you are, so arriving is pretended here. In the phone app it follows the places saved under Gym reminder.')}</p>
+        {places.filter(p => p.id !== S.activeEquipId).map(p => <button key={p.id} type="button" className="btn fk-outline" onClick={() => applyAutoGym(p.id)}>{ft('Pretend I arrived at {0}', p.name)}</button>)}
+      </div>)}
   </div>
 }

@@ -109,13 +109,15 @@ function Row({ S, place, routine, row, write, open, onOpen }) {
       </div>
     </div>
   }
-  // Two refusals, or nothing the place can offer: the skip question.
+  // Two refusals, or nothing the place can offer: the skip question, with what she turned down.
+  const said = [...new Set((row.declined || []).map(id => (EXIDX[id] ? nameOf(EXIDX[id]) : '')).filter(Boolean))]
   return <div className="fk-swap open" role="group" aria-label={ft('Do you want to skip this exercise?')}>
     <div className="fk-swap-to big">{ft('Do you want to skip this exercise?')}</div>
     {lim && <div className="fk-tag">{limitTag(row.limit)}</div>}
     <p className="fk-swap-why">{lim
       ? ft('{0} has nothing gentler left for your {1}. Skipping takes it out of {2} while you train at {3}.', from, area, routine.name, place.name)
       : ft('{0} has no approved replacement. Skipping takes it out of {1} while you train at {2}. It stays in your plan everywhere else.', from, routine.name, place.name)}</p>
+    {said.length > 0 && <div className="fk-said-no"><span className="fk-eyebrow">{ft('You said no to')}</span>{said.map(n => <span key={n}>{n}</span>)}</div>}
     <div className="fk-two">
       <button type="button" className="btn primary" onClick={() => write(m => withSkipped(m, key, undefined, lim))}>{ft('Yes, skip it')}</button>
       {lim ? <button type="button" className="btn fk-outline" onClick={() => write(m => withKept(m, key, lim))}>{ft('No, keep it')}</button>
@@ -223,20 +225,22 @@ export default function ReviewSwaps() {
   const S = useStore(s => s.S)
   const nav = useNavigate()
   useLang()
-  const place = currentPlace(S) || placesOf(S)[0] || null
   // Opened from Home it covers today's session only (/swaps?scope=today); the whole plan is one tap away.
+  // From Places it can be about a place she is not at (/swaps?place=id).
   const [params] = useSearchParams()
+  const asked = params.get('place')
+  const place = (asked && placesOf(S).find(p => String(p.id) === asked)) || currentPlace(S) || placesOf(S)[0] || null
   const [all, setAll] = useState(params.get('scope') !== 'today')
   const todays = effectiveRoutineIds(S, todayISO())
   const only = !all && todays.length ? todays : null
   return <div className="narrow fk-page">
     <div className="hdr">
-      <button className="iconbtn" data-back="/home" onClick={() => nav('/home')} aria-label={ft('Back')}><Icon name="chevronLeft" /></button>
+      <button className="iconbtn" data-back={asked ? '/places' : '/home'} onClick={() => nav(asked ? '/places' : '/home')} aria-label={ft('Back')}><Icon name="chevronLeft" /></button>
       <div style={{ flex: 1, margin: '0 12px', minWidth: 0 }}>
         <h1>{ft('Swaps for')} <em>{place ? place.name : ''}</em>.</h1>
         <div className="sub">{only ? ft('Today\u2019s session. Nothing changes until you approve.') : ft('Nothing changes until you approve.')}</div>
       </div>
     </div>
-    {place ? <SwapReview place={place} onDone={() => nav('/home')} only={only} onWhole={() => setAll(true)} /> : <p className="fk-note">{ft('Add a place first, in Settings.')}</p>}
+    {place ? <SwapReview place={place} onDone={() => nav(asked ? '/places' : '/home')} only={only} onWhole={() => setAll(true)} /> : <p className="fk-note">{ft('Add a place first, in Settings.')}</p>}
   </div>
 }

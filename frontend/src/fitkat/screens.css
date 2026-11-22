@@ -186,3 +186,13 @@
 .fk-today-amount{flex:none;color:var(--label-2);font-size:.8125rem;font-variant-numeric:tabular-nums}
 .fk-today-start{min-height:52px;margin-top:6px}
 .fk-today-other{align-self:center;min-height:44px}
+
+/* Under a limit, in the workout: how much discomfort is all right, and "Skip it today". */
+.fk-comfort{display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:var(--sage);padding:12px 14px 4px;margin:0 0 12px;color:var(--label-2);font-size:.8125rem;line-height:1.5}
+.fk-comfort .fk-link{min-height:44px}
+/* At the skip question: what she turned down. */
+.fk-said-no{display:flex;flex-direction:column;gap:3px;background:var(--ivory);padding:10px 12px;font-size:.875rem;line-height:1.4}
+/* Places: the Switching section and the pretended arrival. */
+.fk-places-sec{margin:28px 0 0;padding-bottom:8px}
+.fk-places-sec~.fk-limit-row{font-size:.875rem;min-height:56px}
+.fk-pretend{display:flex;flex-direction:column;gap:8px;margin-top:6px}

@@ -336,6 +336,21 @@ export function reviewList(S, routines, place) {
 export const undecidedCount = (S, routines, place) =>
   reviewList(S, routines, place).reduce((n, g) => n + g.rows.filter(r => r.state !== 'approved' && r.state !== 'skipped' && r.state !== 'kept').length, 0)
 
+/** What moving to a place would ask of these routines: `need` swaps to decide, `fits` exercises that run as written. */
+export function switchCost(S, routines, place) {
+  const rs = list(routines).filter(Boolean)
+  const touched = reviewList(S, rs, place).reduce((n, g) => n + g.rows.length, 0)
+  const total = rs.reduce((n, r) => n + list(r.ex).length, 0)
+  return { need: undecidedCount(S, rs, place), fits: Math.max(0, total - touched) }
+}
+
+/** The keys of what she chose to skip at a place. Not what is skipped because an area rests: that goes with the limit. */
+export const skippedKeys = (S, routines, place) =>
+  reviewList(S, routines, place).flatMap(g => g.rows.filter(r => r.state === 'skipped' && !r.rest).map(r => swapKey(place.id, g.routine.id, r.cfg.id)))
+
+/** S.placeSwaps with those decisions cleared, so each exercise is asked about again. */
+export const withRestored = (map, keys, now = Date.now()) => keys.reduce((m, k) => withCleared(m, k, now), map)
+
 /** Exercises that run as an approved replacement at a place. */
 export const swappedCount = (S, routines, place) =>
   reviewList(S, routines, place).reduce((n, g) => n + g.rows.filter(r => r.state === 'approved').length, 0)

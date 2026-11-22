@@ -142,6 +142,7 @@ import { overlayOn } from './fitkat/brand.js'
 import FitkatCheckin from './fitkat/Checkin.jsx'
 import { withSoreAreas, goEasierWhereSore, markEased, withPending, easePending, checkinOf, easierOffer, formFromTiles } from './fitkat/checkin.js'
 import { ft } from './fitkat/strings.js'
+import { asksPlace, placeMenu } from './fitkat/place-switch.jsx'
 import { sleepHoursOn } from './lib/vitals.js'
 import DailyCheckin from './components/DailyCheckin.jsx'
 
@@ -4005,6 +4006,13 @@ export function DayNoteRow({ iso, note }) {
 // `effectiveRoutineIds(...)` for today's planned session, `[]` / null for explicit freestyle.
 // `opts.lead`: exercises a last session did not get to (lib/leftovers.js, #985), done first.
 export function startFlow(routineIds, opts = {}) {
+  // FitKat: "Ask where I am training when I start a session" (fitkat/place-switch.jsx), before anything else.
+  if (overlayOn() && !opts.placed && asksPlace(S())) {
+    const on = () => startFlow(routineIds, { ...opts, placed: true })
+    const ids = Array.isArray(routineIds) ? routineIds : routineIds ? [routineIds] : []
+    placeMenu({ routines: S().routines.filter(r => ids.includes(r.id)), onSame: on, onSwitched: on, onStay: on })
+    return
+  }
   // The daily-form check-in comes first (v1.4.5, lib/daily-form.js): only when switched on
   // (Settings → Workout), never with the Health module off, once a day.
   // FitKat asks unless it was switched off; openGym only once it was switched on.
