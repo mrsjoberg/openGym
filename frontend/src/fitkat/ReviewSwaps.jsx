@@ -20,7 +20,7 @@ import { Thumb } from '../components/Media.jsx'
 import { ft } from './strings.js'
 import { placesOf } from './places.js'
 import {
-  currentPlace, reviewList, undecidedCount, approveAll, fitsPlace, swapKey, FORM_CHECK, questionIndex, rowSig,
+  currentPlace, reviewList, undecidedCount, openCount, approveAll, fitsPlace, swapKey, FORM_CHECK, questionIndex, rowSig,
   withApproved, withChosen, withDeclined, withSkipped, withCleared, withKept, sessionCount,
 } from './place-swaps.js'
 import { AREA_LABEL, limitOn, limitsOf } from './limits.js'
@@ -208,7 +208,7 @@ export function SwapReview({ place, onDone, only, onWhole, mustFinish = false, d
   const openId = waiting.includes(picked) ? picked : waiting[0]
   const dropped = droppedList(S)
   const blocks = routines.map(r => groups.find(g => g.routine.id === r.id) || dropped.find(d => d.routine.id === r.id)).filter(Boolean)
-  const more = only ? undecidedCount(S, S.routines, place) - left : 0
+  const more = only ? openCount(S, S.routines, place) - open : 0
   const whole = only && onWhole && <button type="button" className="fk-link" onClick={onWhole}>{more > 0 ? ft('Review the whole plan ({0} more)', more) : ft('Review the whole plan')}</button>
   if (!blocks.length) return <>
     <p className="fk-note">{only ? ft('Today\u2019s session fits {0}. Nothing to swap.', place.name) : ft('Everything in your plan fits {0}. Nothing to swap.', place.name)}</p>
@@ -250,21 +250,29 @@ export default function ReviewSwaps() {
   const nav = useNavigate()
   useLang()
   // Opened from Home it covers today's session only (/swaps?scope=today); the whole plan is one tap away.
-  // From Places it can be about a place she is not at (/swaps?place=id).
-  const [params] = useSearchParams()
+  // It can be about a place she is not at (/swaps?place=id): from Places, or by the tabs here.
+  // `from` says where Back leads: "Your swaps" in Settings, Places, or Home.
+  const [params, setParams] = useSearchParams()
   const asked = params.get('place')
-  const place = (asked && placesOf(S).find(p => String(p.id) === asked)) || currentPlace(S) || placesOf(S)[0] || null
+  const places = placesOf(S)
+  const place = (asked && places.find(p => String(p.id) === asked)) || currentPlace(S) || places[0] || null
+  const back = params.get('from') === 'settings' ? '/settings' : params.get('from') === 'places' ? '/places' : '/home'
+  const show = id => setParams(prev => { const next = new URLSearchParams(prev); next.set('place', id); return next }, { replace: true })
   const [all, setAll] = useState(params.get('scope') !== 'today')
   const todays = effectiveRoutineIds(S, todayISO())
   const only = !all && todays.length ? todays : null
   return <div className="narrow fk-page">
     <div className="hdr">
-      <button className="iconbtn" data-back={asked ? '/places' : '/home'} onClick={() => nav(asked ? '/places' : '/home')} aria-label={ft('Back')}><Icon name="chevronLeft" /></button>
+      <button className="iconbtn" data-back={back} onClick={() => nav(back)} aria-label={ft('Back')}><Icon name="chevronLeft" /></button>
       <div style={{ flex: 1, margin: '0 12px', minWidth: 0 }}>
         <h1>{ft('Swaps for')} <em>{place ? place.name : ''}</em>.</h1>
         <div className="sub">{only ? ft('Today\u2019s session. Nothing changes until you approve.') : ft('Nothing changes until you approve.')}</div>
       </div>
     </div>
-    {place ? <SwapReview place={place} onDone={() => nav(asked ? '/places' : '/home')} only={only} onWhole={() => setAll(true)} /> : <p className="fk-note">{ft('Add a place first, in Settings.')}</p>}
+    {/* Answers are kept per place, so with more than one she chooses which to look at. */}
+    {place && places.length > 1 && <div className="fk-tabs" role="group" aria-label={ft('Places')}>
+      {places.map(p => <button key={p.id} type="button" className={'fk-tab' + (p.id === place.id ? ' on' : '')} aria-pressed={p.id === place.id} onClick={() => show(String(p.id))}>{p.name}</button>)}
+    </div>}
+    {place ? <SwapReview place={place} onDone={() => nav(back)} only={only} onWhole={() => setAll(true)} /> : <p className="fk-note">{ft('Add a place first, in Settings.')}</p>}
   </div>
 }

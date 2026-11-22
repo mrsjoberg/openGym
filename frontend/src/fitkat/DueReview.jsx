@@ -12,7 +12,7 @@ import { SwapReview } from './ReviewSwaps.jsx'
 
 /** How an answer is changed afterwards: said wherever answers are given (owner, 22 Nov). */
 export const ChangeLater = () => <p className="fk-change-later">
-  <strong>{ft('To change an answer later:')}</strong> {ft('Settings, Equipment, Places and equipment, then "Review" under the place. "Undo" beside an exercise asks about it again, in every session it counts for.')}
+  <strong>{ft('To change an answer later:')}</strong> {ft('Settings, then "Your swaps". "Undo" beside an exercise asks about it again, in every session it counts for.')}
 </p>
 
 export function DueReview({ ids, onStart }) {

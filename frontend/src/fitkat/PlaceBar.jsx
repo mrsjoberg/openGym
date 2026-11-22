@@ -16,7 +16,7 @@ import { limitTag } from './Limits.jsx'
 import { ft } from './strings.js'
 import { placesOf } from './places.js'
 import { placeMenu } from './place-switch.jsx'
-import { currentPlace, undecidedCount, swappedCount } from './place-swaps.js'
+import { currentPlace, openCount, swappedCount } from './place-swaps.js'
 import { saidOf, checkinOf } from './checkin.js'
 import { todayISO } from '../lib/format.js'
 
@@ -38,8 +38,9 @@ export function PlaceNotes() {
   const checked = !!checkinOf(S, today)
   const open = !S.active && !(S.workouts || []).some(w => w?.d === today)
   const ask = open && !checked && S.dailyForm !== false
-  const left = place ? undecidedCount(S, S.routines, place) : 0
-  const leftToday = place ? undecidedCount(S, effectiveRoutines(S, today), place) : 0
+  // Questions, not rows: the same exercise in two sessions is asked about once (place-swaps.js).
+  const left = place ? openCount(S, S.routines, place) : 0
+  const leftToday = place ? openCount(S, effectiveRoutines(S, today), place) : 0
   const swapped = place ? swappedCount(S, S.routines, place) : 0
   return <>
     {ask && <button type="button" className="fk-place-note quiet" onClick={fitkatCheckinSheet}>
@@ -52,14 +53,14 @@ export function PlaceNotes() {
     </button>}
     {checked && !open && said.length > 0 && <div className="fk-place-note quiet"><span>{ft('Today: {0}.', said.join(', '))}</span></div>}
     {leftToday > 0 ? <button type="button" className="fk-place-note" onClick={() => nav('/swaps?scope=today')}>
-      <span>{ft('{0} exercises in today\u2019s session need a swap for {1}.', leftToday, place.name)}</span>
+      <span>{leftToday === 1 ? ft('1 exercise in today\u2019s session needs a swap for {0}.', place.name) : ft('{0} exercises in today\u2019s session need a swap for {1}.', leftToday, place.name)}</span>
       <span className="fk-link">{ft('Review')}</span>
     </button> : left > 0 && <button type="button" className="fk-place-note" onClick={() => nav('/swaps')}>
-      <span>{ft('{0} exercises in your plan need a swap for {1}.', left, place.name)}</span>
+      <span>{left === 1 ? ft('1 exercise in your plan needs a swap for {0}.', place.name) : ft('{0} exercises in your plan need a swap for {1}.', left, place.name)}</span>
       <span className="fk-link">{ft('Review')}</span>
     </button>}
     {!left && swapped > 0 && <button type="button" className="fk-place-note quiet" onClick={() => nav('/swaps')}>
-      <span>{ft('{0} exercises swapped for {1}.', swapped, place.name)}</span>
+      <span>{swapped === 1 ? ft('1 exercise swapped for {0}.', place.name) : ft('{0} exercises swapped for {1}.', swapped, place.name)}</span>
       <span className="fk-link dim">{ft('Change')}</span>
     </button>}
   </>

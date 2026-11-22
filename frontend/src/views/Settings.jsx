@@ -50,7 +50,7 @@ import { pushSupported, enablePush, disablePush, sendTestPush, syncPushSubscript
 import { wakeLockSupported } from '../lib/wakelock.js'
 import { t, tn, LANGS, INSTR_LANGS, EXERCISE_NAME_LANGS, baseLang, dateLocale } from '../lib/i18n.js'
 import { isOffered, lightOnly, appName, overlayOn } from '../fitkat/brand.js'
-import { PlacesLink } from '../fitkat/Places.jsx'
+import { PlacesLink, SwapsLink } from '../fitkat/Places.jsx'
 import { LimitsLink } from '../fitkat/Limits.jsx'
 import { ft } from '../fitkat/strings.js'
 import AboutCredit from '../fitkat/AboutCredit.jsx'
@@ -1508,6 +1508,8 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go, entryKey }) {
           <Icon name="chevronRight" className="lrow-c" />
         </button>
       </Section>
+      {/* FitKat: her answers about swaps, one tap from here (fitkat/Places.jsx). */}
+      {overlayOn() && <SwapsLink />}
       {ROOT_GROUPS.map(g => ({ ...g, ids: g.ids.filter(id => onRoot(id, ctx)) })).filter(g => g.ids.length).map(g => (
         <Section key={g.ids[0]} title={g.title && t(g.title)}>
           {g.ids.map(id => <Row key={id} icon={PAGES[id].icon} iconTint={PAGES[id].tint} title={t(PAGES[id].title)}

@@ -26,6 +26,20 @@ export function PlacesLink() {
   </Section>
 }
 
+/**
+ * "Your swaps" at the top of Settings (owner, 22 Nov): every answer about a swap in one tap, to
+ * look at and change. Not shown before there is a place, since nothing is swapped without one.
+ */
+export function SwapsLink() {
+  const nav = useNavigate()
+  const any = useStore(s => placesOf(s.S).length > 0)
+  if (!any) return null
+  return <Section>
+    <Row icon="swap" iconTint="var(--acc)" title={ft('Your swaps')} subtitle={ft('What stands in for an exercise, and what you skip. Change it here.')}
+      accessory="chevron" onClick={() => nav('/swaps?from=settings')} className="sp-root-row" />
+  </Section>
+}
+
 // A name no other place has: "Home", then "Home 2".
 function freeName(S, base) {
   const taken = new Set(placesOf(S).map(p => p.name))
@@ -83,7 +97,7 @@ export default function Places() {
           <div className="fk-prog-about">{kitDetail(p, ft)}</div>
           {swapped > 0 && <div className="fk-limit-row">
             <span>{swapped === 1 ? ft('1 approved swap') : ft('{0} approved swaps', swapped)}</span>
-            <button type="button" className="fk-link" onClick={() => nav('/swaps?place=' + encodeURIComponent(p.id))}>{ft('Review')}</button>
+            <button type="button" className="fk-link" onClick={() => nav('/swaps?from=places&place=' + encodeURIComponent(p.id))}>{ft('Review')}</button>
           </div>}
           {skipped.length > 0 && <div className="fk-limit-row">
             <span>{skipped.length === 1 ? ft('1 skipped exercise') : ft('{0} skipped exercises', skipped.length)}</span>

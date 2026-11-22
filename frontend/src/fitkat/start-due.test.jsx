@@ -59,7 +59,7 @@ describe('starting a session with open questions', () => {
     // Asked once, and said so: where else the answer counts, and how to change it later.
     expect(host.querySelector('.fk-swap.open').textContent).toContain('Your answer also counts for Spare.')
     expect(host.textContent).toContain('To change an answer later:')
-    expect(host.textContent).toContain('Settings, Equipment, Places and equipment')
+    expect(host.textContent).toContain('Settings, then "Your swaps".')
     expect(host.textContent).toContain('0 of 2 reviewed')
     // No way on yet: neither "Start Leg Day" nor "Finish later".
     expect(button(host, 'Start Leg Day')).toBeUndefined()

@@ -9,7 +9,7 @@ import { mergeStates } from '../lib/sync-merge.js'
 import {
   suggestSwaps, fitsPlace, routineAtPlace, routineForPlace, routineHere, fitOf, swapKey,
   withApproved, withChosen, withDeclined, withSkipped, withCleared, decisionOf, readDecision,
-  reviewList, undecidedCount, swappedCount, approveAll, FORM_CHECK, questionIndex, rowSig,
+  reviewList, undecidedCount, openCount, swappedCount, switchCost, approveAll, FORM_CHECK, questionIndex, rowSig,
 } from './place-swaps.js'
 
 const ACC = { accV: 3 }
@@ -224,6 +224,18 @@ describe('asked once: the same exercise in several sessions', () => {
     expect(at(s, b)).toMatchObject({ state: 'approved', to: { id: first } })
     expect(at(s, c).state).toBe('pending')
     expect(undecidedCount(s, [a, b], home)).toBe(0)
+  })
+  it('counts questions and swapped exercises once, where rows count each session', () => {
+    // The hip thrust three times (two of them the same question), and the calf raise once.
+    expect(undecidedCount(S, S.routines, home)).toBe(4)
+    expect(openCount(S, S.routines, home)).toBe(3)
+    expect(openCount(S, [a], home)).toBe(2)
+    expect(switchCost(S, [a, b], home).need).toBe(2)
+    const s = { ...S, placeSwaps: approveAll({}, S, [a], home, 1) }
+    // Lower A's two, of which the hip thrust also runs in Lower B: two exercises swapped, in three rows.
+    expect(swappedCount(s, s.routines, home)).toBe(2)
+    expect(openCount(s, s.routines, home)).toBe(1)
+    expect(openCount({}, [], home)).toBe(0)
   })
   it('keeps answers apart from place to place', () => {
     const s = answer(S, a, (m, k) => withApproved(m, k, first, 1))

@@ -383,7 +383,14 @@ export function questionIndex(S, routines, place) {
   return index
 }
 
-/** Exercises still waiting for her answer at a place. */
+// What the screens count (owner, 22 Nov): questions and exercises, not rows. The same exercise in
+// several sessions, asked the same thing or answered the same way, is one.
+const distinct = (S, routines, place, pick) => new Set(reviewList(S, routines, place).flatMap(g => g.rows.filter(pick).map(rowSig))).size
+
+/** Questions still waiting for her answer at a place, each counted once. */
+export const openCount = (S, routines, place) => distinct(S, routines, place, r => r.state !== 'approved' && r.state !== 'skipped' && r.state !== 'kept')
+
+/** Rows still waiting for her answer at a place: one per exercise per session. For whether anything is open at all. */
 export const undecidedCount = (S, routines, place) =>
   reviewList(S, routines, place).reduce((n, g) => n + g.rows.filter(r => r.state !== 'approved' && r.state !== 'skipped' && r.state !== 'kept').length, 0)
 
@@ -392,7 +399,7 @@ export function switchCost(S, routines, place) {
   const rs = list(routines).filter(Boolean)
   const touched = reviewList(S, rs, place).reduce((n, g) => n + g.rows.length, 0)
   const total = rs.reduce((n, r) => n + list(r.ex).length, 0)
-  return { need: undecidedCount(S, rs, place), fits: Math.max(0, total - touched) }
+  return { need: openCount(S, rs, place), fits: Math.max(0, total - touched) }
 }
 
 /** The keys of what she chose to skip at a place. Not what is skipped because an area rests: that goes with the limit. */
@@ -402,9 +409,8 @@ export const skippedKeys = (S, routines, place) =>
 /** S.placeSwaps with those decisions cleared, so each exercise is asked about again. */
 export const withRestored = (map, keys, now = Date.now()) => keys.reduce((m, k) => withCleared(m, k, now), map)
 
-/** Exercises that run as an approved replacement at a place. */
-export const swappedCount = (S, routines, place) =>
-  reviewList(S, routines, place).reduce((n, g) => n + g.rows.filter(r => r.state === 'approved').length, 0)
+/** Exercises that run as an approved replacement at a place, each counted once. */
+export const swappedCount = (S, routines, place) => distinct(S, routines, place, r => r.state === 'approved')
 
 /**
  * S.placeSwaps with every suggestion now on screen approved. Exercises at the skip question stay
