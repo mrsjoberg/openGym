@@ -36,7 +36,9 @@
 .fk-kit-chip{display:flex;align-items:center;gap:8px;min-height:46px;padding:0 12px;text-align:start;border-radius:2px;
   box-shadow:inset 0 0 0 1px var(--sep);font-size:.8125rem;font-weight:500;color:var(--label);line-height:1.25;
   transition:background var(--fast),color var(--fast)}
-.fk-kit-chip.on{background:var(--acc);color:var(--on-acc);box-shadow:none}
+/* Ticked kit is a soft green with dark text, not the accent: with a full gym ticked the screen was one
+   block of the button's own green and the button got lost (owner, 22 Nov). Ink on it is 6:1. */
+.fk-kit-chip.on{background:#a9c3ae;color:var(--ink);box-shadow:none}
 .fk-kit-chip .icn{flex:none;font-size:.875rem}
 
 /* programme cards and place rows: hairline rows, serif names */
