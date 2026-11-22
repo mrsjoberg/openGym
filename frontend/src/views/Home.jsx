@@ -250,7 +250,7 @@ export default function Home() {
         arrival at the gym; folds away per user via the "Gym check-in" switch in Settings. */}
     {on('checkin') && (
       <div className="card tap-host checkin-card">
-        <CardHead icon="qr" tint="var(--blue)" eyebrow={t('At the gym')} title={t('Check in')} open={{ onClick: () => nav('/checkin') }}
+        <CardHead icon="qr" tint="var(--blue)" eyebrow={t('At the gym')} title={overlayOn() ? t('Gym card') : t('Check in')} open={{ onClick: () => nav('/checkin') }}
           action={<Icon name="chevronRight" className="chev" />} />
       </div>
     )}

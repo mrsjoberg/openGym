@@ -15,6 +15,7 @@ import { Button } from './ui.jsx'
 import { formInsights, insightProgress, workoutPerformance } from '../lib/form-insights.js'
 import { displayScale } from '../lib/effort.js'
 import CardHead from './CardHead.jsx'
+import { overlayOn } from '../fitkat/brand.js'
 
 // The good side of each factor, as the row's title.
 const FACTOR_LABEL = {
@@ -76,7 +77,7 @@ export default function DailyFormCard({ S }) {
   const days = formDays(S)
   const vs = vitals ? vitalsSummary(vitals, today) : null
   const anyVital = vs && Object.values(vs).some(Boolean)
-  const offer = offerCheckin(S)
+  const offer = !overlayOn() && offerCheckin(S)   // FitKat asks by default (fitkat/checkin.js)
   // The comparison reads every workout (about 120 ms over 2,000 of them), so only for the card that
   // shows it: not for the one-time offer, not when the card is not there at all.
   const needPerf = days.length > 0 || !!anyVital || S.dailyForm === true

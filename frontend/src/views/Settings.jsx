@@ -1085,12 +1085,12 @@ export default function Settings({ page = null, find = null, via = null, entryKe
             onChange={v => update(s => { s.theme = v })}
           />
         </Row>}
-        <div className="lrow" style={{ flexWrap: 'wrap', rowGap: 12, paddingBottom: 14 }}>
+        {!overlayOn() && <div className="lrow" style={{ flexWrap: 'wrap', rowGap: 12, paddingBottom: 14 }}>
           <span className="lrow-i" style={{ '--tint': 'var(--purple)' }}><Icon name="palette" /></span>
           <span className="lrow-m"><span className="lrow-t">{t('Accent color')}</span></span>
           <span className="lrow-v">{accentLabel(S)}</span>
           <AccentSwatches S={S} update={update} />
-        </div>
+        </div>}
         {/* The little pictures in the app (the streak flame, medals, freezes, the advent calendar):
             openGym's own icons by default, which follow the accent and the theme, or the phone's
             emoji for those who like them (components/Glyph.jsx). Synced like the theme. */}
@@ -1853,7 +1853,7 @@ function seasonWithIcon(S) {
 }
 
 function accentLabel(S) {
-  const k = accentKey(S)
+  const k = overlayOn() ? 'brand' : accentKey(S)
   return k === CUSTOM ? t('Your own color') : t(ACCENT_NAMES[k] || 'Green')
 }
 

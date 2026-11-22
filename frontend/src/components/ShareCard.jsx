@@ -4,6 +4,8 @@
 // device (`render`), shown before it goes anywhere, and handed to the share sheet as a PNG.
 import { useEffect, useRef, useState } from 'react'
 import { t } from '../lib/i18n.js'
+import { overlayOn } from '../fitkat/brand.js'
+import { ft } from '../fitkat/strings.js'
 import { Button, Segmented } from './ui.jsx'
 import { shareImage, saveImage } from '../lib/share-image.js'
 import { MOBILE } from '../lib/mobile.js'
@@ -11,11 +13,13 @@ import { FORMAT_IDS, STYLE_IDS } from '../lib/card-draw.js'
 
 // The last format and look picked, per device: a person who posts Stories keeps posting Stories.
 const PREF = 'og_share_card'
+// FitKat: the light card is ivory and the dark one forest green (lib/card-draw.js cardPalette).
+const firstStyle = () => (overlayOn() ? 'light' : 'dark')
 function readPref() {
   try {
     const v = JSON.parse(localStorage.getItem(PREF) || '{}')
-    return { format: FORMAT_IDS.includes(v.format) ? v.format : 'story', style: STYLE_IDS.includes(v.style) ? v.style : 'dark' }
-  } catch (e) { return { format: 'story', style: 'dark' } }
+    return { format: FORMAT_IDS.includes(v.format) ? v.format : 'story', style: STYLE_IDS.includes(v.style) ? v.style : firstStyle() }
+  } catch (e) { return { format: 'story', style: firstStyle() } }
 }
 function writePref(p) { try { localStorage.setItem(PREF, JSON.stringify(p)) } catch (e) { /* no storage: not remembered */ } }
 
@@ -64,7 +68,9 @@ export default function ShareCardSheet({ title, render, deps = [], name, shareTi
       <Segmented value={pref.format} onChange={format => set({ format })}
         options={[{ value: 'story', label: t('Story 9:16') }, { value: 'square', label: t('Square 1:1') }]} />
       <Segmented value={pref.style} onChange={style => set({ style })}
-        options={[{ value: 'dark', icon: 'moon', label: t('Dark') }, { value: 'light', icon: 'sun', label: t('Light') }]} />
+        options={overlayOn()
+          ? [{ value: 'light', label: ft('Ivory') }, { value: 'dark', label: ft('Forest green') }]
+          : [{ value: 'dark', icon: 'moon', label: t('Dark') }, { value: 'light', icon: 'sun', label: t('Light') }]} />
     </div>
     {children}
     <div className="sharew-actions">

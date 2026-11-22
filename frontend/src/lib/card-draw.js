@@ -6,7 +6,7 @@
 
 import { inkIn } from './accent.js'
 import { overlayOn } from '../fitkat/brand.js'
-import { drawWordmark } from '../fitkat/brand-draw.js'
+import { drawWordmark, ivoryCard, forestCard } from '../fitkat/brand-draw.js'
 
 // 9:16 for Stories and Reels, 1:1 for a feed or a chat.
 export const FORMATS = { story: { width: 1080, height: 1920 }, square: { width: 1080, height: 1080 } }
@@ -60,9 +60,10 @@ export function accTextOnLight(a) {
 export function cardPalette(style, acc = BRAND.green) {
   const light = style === 'light'
   const a = parseColor(acc) ? acc : BRAND.green
-  return light
+  const p = light
     ? { bg: '#f2f2f7', surface: '#ffffff', tile: '#f2f2f7', label: '#000000', label2: '#6c6c70', acc: a, accText: accTextOnLight(a), sep: '#e5e5ea', light: true }
     : { bg: '#000000', surface: '#1c1c1e', tile: '#2c2c2e', label: '#ffffff', label2: '#98989f', acc: a, accText: a, sep: '#38383a', light: false }
+  return !overlayOn() ? p : light ? ivoryCard(p) : forestCard(p)   // FitKat: its own two papers
 }
 
 // The brand mark (assets/logo/opengym-mark.svg) on its own 352×174 grid, centred on 0,0. Square

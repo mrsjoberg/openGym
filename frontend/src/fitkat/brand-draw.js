@@ -2,7 +2,7 @@
 // whatever the paper. Called by lib/card-draw.js drawBrand in place of openGym's lockup; `y` is the
 // text's baseline, as there. The site address openGym prints at the other end has no FitKat
 // counterpart, so nothing is drawn there.
-const FOREST = '#405849', IVORY = '#f8f6f0', ORANGE = '#b5713a'   // the theme's --orange
+const FOREST = '#405849', IVORY = '#f8f6f0', ORANGE = '#e06a00'   // the challenge bar's orange (--streak-ink)
 const FAMILY = "'Cormorant Garamond', Georgia, 'Times New Roman', serif"
 
 // A canvas does not wait for a web font, so both faces are asked for ahead of the first drawing.
@@ -49,3 +49,18 @@ export function drawWordmark(ctx, { x, y, size = 40 }) {
   ctx.fillText('.', tx, y)
   ctx.restore()
 }
+
+// The papers a share image comes on under FitKat: ivory or forest green, never black. Each takes
+// openGym's palette for that card (lib/card-draw.js cardPalette, lib/share-card.js sharePalette)
+// and puts FitKat's paper, panels and ink on it; everything else the card knows stays.
+const INK = '#303c35', SOFT = '#686e63', SAGE = '#e5e8dd', LINE = '#d7d9ce'
+const onForest = a => `rgba(248, 246, 240, ${a})`
+
+/** A light card: ivory paper, sage tiles, the app's ink. */
+export const ivoryCard = base => ({ ...base, bg: IVORY, surface: IVORY, tile: SAGE, label: INK, label2: SOFT, sep: LINE, light: true })
+
+/** A dark card: forest green paper with ivory type, where openGym's is black. */
+export const forestCard = base => ({
+  ...base, bg: FOREST, surface: '#496252', tile: onForest(0.12), label: IVORY, label2: onForest(0.74), sep: onForest(0.2),
+  acc: IVORY, accText: IVORY, light: false,
+})

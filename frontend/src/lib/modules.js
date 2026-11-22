@@ -18,9 +18,12 @@
 //     Body off on the phone and Seasonal off on the laptop keeps both.
 //
 // The core (logging, plans, history, the exercise library, the basic stats) is not a module.
-// Pure: no imports, so lib/ helpers such as history.js effortOf can use it without a cycle.
+// Pure: no imports but fitkat/brand.js, which has none of its own, so lib/ helpers such as
+// history.js effortOf can use it without a cycle.
 
 /* `title` and `desc` are English keys, translated where they are shown. Order is the page's. */
+import { overlayOn } from '../fitkat/brand.js'
+
 export const MODULES = [
   { id: 'effort', group: 'training', icon: 'gauge', tint: 'var(--purple)', title: 'Effort',
     desc: 'Rate each set in RIR or RPE, and see in Stats how hard you really push.' },
@@ -73,13 +76,15 @@ const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v)
 // in openGym Offline, which has no network). Off whatever S.modules says, and not offered on the
 // Modules page; the choice itself is kept, so the same profile on a normal build is unchanged.
 let unavailable = new Set()
+// FitKat keeps one look, so the seasonal themes are left out there as if this build had none.
+const leftOut = id => unavailable.has(id) || (id === 'seasonal' && overlayOn())
 export function setUnavailableModules(ids) { unavailable = new Set(Array.isArray(ids) ? ids : []) }
 /** Whether this build has module `id` at all. */
-export const moduleBuilt = id => !unavailable.has(id)
+export const moduleBuilt = id => !leftOut(id)
 
 /** Whether module `id` is on for this profile. Unknown ids are on (a newer client's module). */
 export function isOn(S, id) {
-  if (unavailable.has(id)) return false
+  if (leftOut(id)) return false
   const v = isMap(S?.modules) ? S.modules[id] : undefined
   if (typeof v === 'boolean') return v
   // Before 1.4.4 the check-in had its own switch in Look & Home; it decides until Modules does.

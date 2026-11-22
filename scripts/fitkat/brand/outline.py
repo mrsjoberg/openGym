@@ -15,7 +15,7 @@ from fontTools.pens.transformPen import TransformPen
 HERE = os.path.dirname(os.path.abspath(__file__))
 FONTS = os.environ.get('FITKAT_FONTS') or os.path.join(HERE, '..', '..', '..', 'frontend', 'src', 'fitkat', 'fonts')
 OUT = sys.argv[1] if len(sys.argv) > 1 else HERE
-IVORY, FOREST, ORANGE = '#f8f6f0', '#405849', '#b5713a'   # the theme's --orange (fitkat/theme.css)
+IVORY, FOREST, ORANGE = '#f8f6f0', '#405849', '#e06a00'   # the orange of the challenge and streak bars (--streak-ink)
 UPRIGHT, ITALIC = 'cormorant-garamond-latin-wght-normal.woff2', 'cormorant-garamond-latin-wght-italic.woff2'
 
 def load(name, wght):

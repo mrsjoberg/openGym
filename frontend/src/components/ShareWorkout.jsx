@@ -9,6 +9,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t, exerciseNameFor } from '../lib/i18n.js'
+import { overlayOn } from '../fitkat/brand.js'
+import { ft } from '../fitkat/strings.js'
 import { nameIn } from '../lib/a11y-name.js'
 import { EXIDX } from '../lib/exercises.js'
 import { countsWarmups, workoutDay } from '../lib/history.js'
@@ -36,16 +38,20 @@ const toast = m => useUI.getState().toast(m)
 const PREF = 'og_share_workout'
 // A colour pick: a preset's id or a custom #rrggbb (customPalette in lib/share-card.js).
 const colorPick = (v, presets) => (presets.includes(v) || (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v)) ? v : 'auto')
+// FitKat: cards come on ivory or forest green. No black paper, and none of openGym's lime.
+const firstLook = () => (overlayOn() ? 'light' : 'dark')
+const noBlack = v => (overlayOn() && (v === 'black' || v === 'brand') ? 'auto' : v)
+const fkPresets = (list, ...out) => (overlayOn() ? list.filter(k => !out.includes(k)) : list)
 export function readSharePref() {
   try {
     const v = JSON.parse(localStorage.getItem(PREF) || '{}')
     return {
       template: SHARE_TEMPLATES.includes(v.template) ? v.template : 'classic',
       format: SHARE_FORMAT_IDS.includes(v.format) ? v.format : 'story',
-      look: SHARE_LOOKS.includes(v.look) ? v.look : 'dark',
-      bg: colorPick(v.bg, SHARE_BG_PRESETS), ink: colorPick(v.ink, SHARE_INK_PRESETS), hi: colorPick(v.hi, SHARE_HI_PRESETS),
+      look: SHARE_LOOKS.includes(v.look) ? v.look : firstLook(),
+      bg: noBlack(colorPick(v.bg, SHARE_BG_PRESETS)), ink: colorPick(v.ink, SHARE_INK_PRESETS), hi: colorPick(v.hi, SHARE_HI_PRESETS),
     }
-  } catch (e) { return { template: 'classic', format: 'story', look: 'dark', bg: 'auto', ink: 'auto', hi: 'auto' } }
+  } catch (e) { return { template: 'classic', format: 'story', look: firstLook(), bg: 'auto', ink: 'auto', hi: 'auto' } }
 }
 
 // The swatches of one colour row: what each preset is called and what it shows.
@@ -340,16 +346,19 @@ export default function ShareWorkout({ w, close }) {
     <div className="share-opts">
       {!sticker && <Segmented value={pref.format} onChange={format => set({ format })}
         options={[{ value: 'story', label: t('Story 9:16') }, { value: 'portrait', label: t('Portrait 4:5') }, { value: 'square', label: t('Square 1:1') }]} />}
-      {pref.template !== 'photo' && <Segmented value={pref.look} onChange={look => set({ look })}
-        options={[{ value: 'dark', icon: 'moon', label: t('Dark') }, { value: 'light', icon: 'sun', label: t('Light') }, { value: 'accent', label: t('Accent') }]} />}
+      {pref.template !== 'photo' && (overlayOn() && pref.template !== 'sticker'
+        ? <Segmented value={pref.look === 'accent' ? 'accent' : 'light'} onChange={look => set({ look })}
+            options={[{ value: 'light', label: ft('Ivory') }, { value: 'accent', label: ft('Forest green') }]} />
+        : <Segmented value={pref.look} onChange={look => set({ look })}
+            options={[{ value: 'dark', icon: 'moon', label: t('Dark') }, { value: 'light', icon: 'sun', label: t('Light') }, { value: 'accent', label: t('Accent') }]} />)}
     </div>
 
     {/* Colours of one's own (TestFlight 11-08). The background only where the card has paper of
         its own; the logo always keeps the brand, on its badge where the paper is not its own. */}
     <div className="sharew-colors">
-      {(pref.template === 'classic' || pref.template === 'lifts') && <ColorRow title={t('Background')} value={pref.bg} presets={SHARE_BG_PRESETS} labels={SWATCH_LABEL} named={BG_NAMED} acc={acc} onPick={bg => set({ bg })} />}
-      <ColorRow title={t('Text')} value={pref.ink} presets={SHARE_INK_PRESETS} labels={INK_LABEL} named={INK_NAMED} acc={acc} onPick={ink => set({ ink })} />
-      <ColorRow title={t('Highlights')} value={pref.hi} presets={SHARE_HI_PRESETS} labels={HI_LABEL} named={HI_NAMED} acc={acc} onPick={hi => set({ hi })} />
+      {(pref.template === 'classic' || pref.template === 'lifts') && <ColorRow title={t('Background')} value={pref.bg} presets={fkPresets(SHARE_BG_PRESETS, 'brand', 'black')} labels={SWATCH_LABEL} named={BG_NAMED} acc={acc} onPick={bg => set({ bg })} />}
+      <ColorRow title={t('Text')} value={pref.ink} presets={fkPresets(SHARE_INK_PRESETS, 'brand')} labels={INK_LABEL} named={INK_NAMED} acc={acc} onPick={ink => set({ ink })} />
+      <ColorRow title={t('Highlights')} value={pref.hi} presets={fkPresets(SHARE_HI_PRESETS, 'brand')} labels={HI_LABEL} named={HI_NAMED} acc={acc} onPick={hi => set({ hi })} />
       {pref.bg === 'clear' && (pref.template === 'classic' || pref.template === 'lifts') && <p className="small muted sharew-hint">{t('A see-through PNG: only the type, the tiles and the logo. Lay it over anything.')}</p>}
     </div>
 

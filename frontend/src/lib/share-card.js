@@ -19,6 +19,8 @@ import { viewEntry, exUnitOf } from './ex-unit.js'
 import { fmtDur, fmtNum, fmtVol, capWords } from './format.js'
 import { t, tn, exerciseNameClass } from './i18n-core.js'
 import { parseColor, mixColor, drawBrand, roundRect, BRAND, accTextOnLight } from './card-draw.js'
+import { overlayOn } from '../fitkat/brand.js'
+import { ivoryCard } from '../fitkat/brand-draw.js'
 import { isoRun } from './bidi.js'
 import { workoutCardModel, wrapText, fitSize, mapColors, drawView, drawIcon, TROPHY, FLAME, FLAME_COLOR, CARD_FONT } from './workout-card.js'
 
@@ -193,6 +195,9 @@ const rgba = (c, a) => { const p = parseColor(c) || [0, 0, 0]; return `rgba(${p[
  */
 export function sharePalette(template, look, acc = BRAND.green) {
   const a = parseColor(acc) ? acc : BRAND.green
+  // FitKat has no black card: "Dark" on a card with paper of its own reads as the ivory one.
+  const fk = overlayOn() && template !== 'photo' && template !== 'sticker'
+  if (fk && look === 'dark') look = 'light'
   const white = { label: '#ffffff', label2: 'rgba(255, 255, 255, 0.78)', tile: 'rgba(255, 255, 255, 0.14)', sep: 'rgba(255, 255, 255, 0.2)', surface: '#101010', acc: a, accText: a, light: false }
   if (template === 'photo') return { ...white, bg: '#000000' }
   if (template === 'sticker') {
@@ -201,7 +206,8 @@ export function sharePalette(template, look, acc = BRAND.green) {
     return { ...white, bg: null, shadow: true }
   }
   if (look === 'light') {
-    return { bg: '#f2f2f7', surface: '#f2f2f7', tile: '#ffffff', label: '#000000', label2: '#6c6c70', sep: '#d8d8de', acc: a, accText: accTextOnLight(a), glow: rgba(a, 0.16), light: true }
+    const p = { bg: '#f2f2f7', surface: '#f2f2f7', tile: '#ffffff', label: '#000000', label2: '#6c6c70', sep: '#d8d8de', acc: a, accText: accTextOnLight(a), glow: rgba(a, 0.16), light: true }
+    return fk ? ivoryCard(p) : p
   }
   if (look === 'accent') {
     const ink = lum(a) > 0.36 ? '#000000' : '#ffffff'

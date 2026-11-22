@@ -15,4 +15,4 @@ In the app the wordmark is live text (`frontend/src/fitkat/Wordmark.jsx`, `.fk-w
 
 Not done: the Android and iPhone launch screens and store icons (`frontend/android`, `frontend/ios`,
 `frontend/public/app-icons`) are still openGym's. Colours: ivory `#f8f6f0`, forest `#405849`,
-orange `#b5713a` (the theme's `--orange`; the stop, on forest and on ivory alike).
+orange `#e06a00` (the bright orange of the challenge and streak bars, `--streak-ink`; the stop, on forest and on ivory alike).

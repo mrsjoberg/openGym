@@ -151,7 +151,7 @@ const resolveTheme = theme => lightOnly() ? 'light' : theme === 'light' || theme
 function applyPrefs(theme, accent) {
   const de = document.documentElement
   de.dataset.theme = resolveTheme(theme)
-  applyAccent(de, accent, de.dataset.theme)
+  applyAccent(de, overlayOn() ? 'brand' : accent, de.dataset.theme)   // FitKat: one look, no picker
   const meta = document.querySelector('meta[name="theme-color"]')
   if (meta) meta.content = de.dataset.theme === 'light' ? (lightOnly() ? PAGE_COLOR : '#f2f2f7') : '#000000'
   if (MOBILE) { setSystemBarsLight(de.dataset.theme === 'light'); setSystemAccent(accent) }
