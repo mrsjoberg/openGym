@@ -11,6 +11,7 @@ import { ProgrammeCards } from './ProgrammeLibrary.jsx'
 import { PLACE_KINDS, addPlaces, chipCount, makePlace } from './places.js'
 import { SwapReview } from './ReviewSwaps.jsx'
 import { LimitsStep } from './Limits.jsx'
+import { womenDefaults } from './profile.js'
 
 const STEPS = 5
 
@@ -21,7 +22,7 @@ export default function Onboarding() {
   const [picked, setPicked] = useState(['gym', 'home'])
   const [places, setPlaces] = useState([])
   const [at, setAt] = useState(0)
-  const finish = () => update(s => { s.fitkatSetup = true })
+  const finish = () => update(s => { s.fitkatSetup = true; womenDefaults(s) })
   // Each step starts at its top, wherever the last one was left.
   useEffect(() => { window.scrollTo(0, 0) }, [step, at])
   const toggle = kind => setPicked(p => (p.includes(kind) ? p.filter(k => k !== kind) : PLACE_KINDS.map(k => k.kind).filter(k => k === kind || p.includes(k))))

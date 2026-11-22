@@ -52,6 +52,8 @@ import { t, tn, LANGS, INSTR_LANGS, EXERCISE_NAME_LANGS, baseLang, dateLocale } 
 import { isOffered, lightOnly, appName, overlayOn } from '../fitkat/brand.js'
 import { PlacesLink } from '../fitkat/Places.jsx'
 import { LimitsLink } from '../fitkat/Limits.jsx'
+import { ft } from '../fitkat/strings.js'
+import AboutCredit from '../fitkat/AboutCredit.jsx'
 import { nameIn, said } from '../lib/a11y-name.js'
 import { effectiveLang } from '../lib/default-lang.js'
 import { DEMO, REPO } from '../lib/demo.js'
@@ -1282,7 +1284,7 @@ export default function Settings({ page = null, find = null, via = null, entryKe
           release is newer (checksum verified, see onUpdateRowClick). On the web the app updates
           with its server, so the row points at the APK for the phone instead. iOS and the Google
           Play build are updated by their store. */}
-      <Section footer={MOBILE ? (selfUpdate ? t('Releases are checked on GitHub. The download is verified against its checksum before the installer opens.') : offline ? t('openGym Offline never checks for updates, it can’t. New versions come from wherever you got this one.') : fdroid ? t('F-Droid installs the updates for this build.') : null) : t('The web app updates together with your server. The Android app installs its own updates from here.')}>
+      <Section footer={MOBILE ? (selfUpdate ? t('Releases are checked on GitHub. The download is verified against its checksum before the installer opens.') : offline ? t('openGym Offline never checks for updates, it can’t. New versions come from wherever you got this one.') : fdroid ? t('F-Droid installs the updates for this build.') : null) : overlayOn() ? undefined : t('The web app updates together with your server. The Android app installs its own updates from here.')}>
         {/* The sideloaded APK comes in three kinds that differ only in the animations built in
             (lib/apk-variant.js): which one this is, so nobody has to guess from the file size. */}
         <Row icon="info" iconTint="var(--grey)" title={t('Version')} value={'v' + __APP_VERSION__}
@@ -1293,7 +1295,7 @@ export default function Settings({ page = null, find = null, via = null, entryKe
               subtitle={checking ? t('Checking…') : t('You have v{0}', __APP_VERSION__)}
               accessory="chevron"
               onClick={() => (updateInfo?.hasUpdate ? onUpdateRowClick() : checkNow())} />
-          : <Row icon="download" iconTint="var(--green)" title={t('Get the Android app')}
+          : !overlayOn() && <Row icon="download" iconTint="var(--green)" title={t('Get the Android app')}
               subtitle={t('Download the APK from opengym.ch')} accessory="chevron"
               onClick={() => window.open('https://opengym.ch/#download', '_blank', 'noopener')} />}
       </Section>
@@ -1324,7 +1326,7 @@ export default function Settings({ page = null, find = null, via = null, entryKe
           shows only its rating link: Play's payments policy wants Play billing for anything paid
           inside an app, donations to a project that isn't a registered charity included, so the
           coffee links stay on the APK, the iPhone and the web (docs/APP_STORES.md). */}
-      <Section title={t('Support openGym')} footer={play ? undefined : t('openGym is free: no ads, no subscriptions, no tracking. A coffee keeps it that way.')}>
+      {!overlayOn() && <Section title={t('Support openGym')} footer={play ? undefined : t('openGym is free: no ads, no subscriptions, no tracking. A coffee keeps it that way.')}>
         {MOBILE && ios && <Row icon="star" iconTint="var(--orange)" title={t('Rate openGym on the App Store')} accessory="chevron"
           onClick={() => window.open('https://apps.apple.com/app/id6822275400?action=write-review', '_blank', 'noopener')} />}
         {play && <Row icon="star" iconTint="var(--orange)" title={t('Rate openGym on Google Play')} accessory="chevron"
@@ -1337,7 +1339,7 @@ export default function Settings({ page = null, find = null, via = null, entryKe
           <Row icon="heart" iconTint="var(--purple)" title="GitHub Sponsors" accessory="chevron"
             onClick={() => window.open('https://github.com/sponsors/DuarteSantos8', '_blank', 'noopener')} />
         </>}
-      </Section>
+      </Section>}
       {/* "Add to Home screen": not inside the phone app, and not once it is installed. Safari's
           Share menu only on Apple (an iPad says Macintosh too); Windows and Linux get Chrome's
           install icon instead of an iPhone tip. */}
@@ -1350,8 +1352,8 @@ export default function Settings({ page = null, find = null, via = null, entryKe
           build there is no address bar and no about box, so without this there is no way to tell
           which build you are running, or whether an update actually installed. */}
       <div className="dim small sp-version">
-        openGym v{__APP_VERSION__} · {t('free & open source (AGPL v3)')}<br />
-        <a href="https://github.com/DuarteSantos8/openGym" target="_blank" rel="noopener"><span>{t('Source code')}</span></a><br />
+        {overlayOn() ? <AboutCredit version={__APP_VERSION__} /> : <>openGym v{__APP_VERSION__} · {t('free & open source (AGPL v3)')}<br />
+        <a href="https://github.com/DuarteSantos8/openGym" target="_blank" rel="noopener"><span>{t('Source code')}</span></a><br /></>}
         {/* Attribution the media licence asks for word for word (agreement §8c), so it is not translated.
             The spans keep each link's words above its neighbours' 44 px tap targets (index.css). */}
         Exercise media © Aliaksandr Makatserchyk, <a href="https://gymvisual.com/" target="_blank" rel="noopener"><span>Gym visual</span></a>, gymvisual.com.
@@ -1521,7 +1523,7 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go, entryKey }) {
             accessory="chevron" onClick={() => nav('/assistants')} className="sp-root-row" />}
         </Section>
       ))}
-      <div className="dim small sp-version">openGym v{__APP_VERSION__}</div>
+      <div className="dim small sp-version">{overlayOn() ? 'FitKat · ' + ft('built on openGym v{0}', __APP_VERSION__) : 'openGym v' + __APP_VERSION__}</div>
     </>}
   </div>
 }
