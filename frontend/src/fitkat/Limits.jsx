@@ -13,6 +13,7 @@ import { ft } from './strings.js'
 import { placesOf } from './places.js'
 import { currentPlace, reviewList, restCost } from './place-swaps.js'
 import { AREAS, AREA_LABEL, AREA_HINT, limitsOf, withLimit, withoutLimit } from './limits.js'
+import { settleDrops } from './drops.js'
 
 export const SAFETY = 'FitKat works around what you tell it. It cannot assess an injury. After surgery, or with pain that is sharp, getting worse or not settling, see a physio or doctor first.'
 const EASY_TEXT = 'Exercises that load it get an easier version, done slowly. No jumping or running.'
@@ -91,7 +92,7 @@ export function LimitsStep({ eyebrow, onDone, onBack }) {
   const valueOf = a => treat[a] || { mode: 'easy', rest: false }
   const save = () => {
     const today = todayISO()
-    update(s => { for (const a of picked) s.bodyLimits = withLimit(s.bodyLimits, a, valueOf(a), today) })
+    update(s => { for (const a of picked) s.bodyLimits = withLimit(s.bodyLimits, a, valueOf(a), today); settleDrops(s) })
     onDone()
   }
   if (stage === 'treat') return <div className="fk-onb">
@@ -147,12 +148,13 @@ export default function Limits() {
   const [adding, setAdding] = useState(false)
   const limits = limitsOf(S)
   const place = currentPlace(S) || placesOf(S)[0] || null
-  const set = (area, v) => update(s => { s.bodyLimits = withLimit(s.bodyLimits, area, v, todayISO()) })
+  // A session dropped while she rested an area comes back to her week once she no longer does.
+  const set = (area, v) => update(s => { s.bodyLimits = withLimit(s.bodyLimits, area, v, todayISO()); settleDrops(s) })
   const remove = l => confirmSheet({
     title: ft('Is your {0} better?', ft(AREA_LABEL[l.area]).toLowerCase()),
     message: ft('Your plan goes back to the original exercises.'),
     confirmText: ft('Yes, remove it'),
-    onConfirm: () => update(s => { s.bodyLimits = withoutLimit(s.bodyLimits, l.area) }),
+    onConfirm: () => update(s => { s.bodyLimits = withoutLimit(s.bodyLimits, l.area); settleDrops(s) }),
   })
   return <div className="narrow fk-page">
     <div className="hdr">

@@ -28,6 +28,7 @@ import { profileMachines } from '../lib/machine-kinds.js'
 import { SUBSTITUTE_FAMILIES } from '../lib/exercise-substitutes.js'
 import { currentGymId } from '../lib/gym-split.js'
 import { limitOn, limitOffers, limitsOf, withLimit, restInvolved } from './limits.js'
+import { isDropped } from './drops.js'
 import { fillEntries } from './fills.js'
 
 const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v)
@@ -301,10 +302,14 @@ export function restCost(S, routines, place, area) {
 
 /* ------------------------------------------------------------- the review -- */
 
-/** What there is to review at a place: [{ routine, rows }], only routines with something the kit cannot do. */
+/**
+ * What there is to review at a place: [{ routine, rows }], only routines with something the kit
+ * cannot do. A session she has dropped for now (drops.js) is off her week, so nothing is asked
+ * about it until it comes back.
+ */
 export function reviewList(S, routines, place) {
   if (!place) return []
-  return list(routines).map(routine => ({ routine, rows: routineAtPlace(S, routine, place).filter(r => r.state !== 'fits') }))
+  return list(routines).filter(routine => !isDropped(S, routine.id)).map(routine => ({ routine, rows: routineAtPlace(S, routine, place).filter(r => r.state !== 'fits') }))
     .filter(g => g.rows.length)
 }
 

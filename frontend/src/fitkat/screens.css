@@ -143,4 +143,5 @@
 .fk-rest-line.short{color:var(--label)}
 .fk-fill{display:flex;flex-direction:column;padding-bottom:6px;border-bottom:1px solid var(--sep)}
 .fk-fill>.fk-link{align-self:flex-start}
+.fk-fill>.btn{margin:8px 0 4px}
 .fk-fill .fk-swap.done{border-bottom:0;min-height:52px}

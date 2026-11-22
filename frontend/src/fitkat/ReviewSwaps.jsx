@@ -23,6 +23,7 @@ import {
 import { AREA_LABEL } from './limits.js'
 import { limitTag } from './Limits.jsx'
 import { fillKey, fillEntries, fillSuggestions, withFillAdded, withFillRemoved } from './fills.js'
+import { canDrop, droppedList, dropSession, bringBack } from './drops.js'
 
 const nameOf = ex => (ex ? exerciseNameText(ex) : '')
 // Why this one: what it shares with the exercise it stands in for, and what it uses.
@@ -105,7 +106,9 @@ function Row({ S, place, routine, row, write }) {
 
 // Under a routine's name, when resting an area has taken exercises out of it: how much is left.
 // With "Build your own": exercises she adds in place of the ones resting took out (fills.js).
-function RestLine({ S, routine, place, writeFills }) {
+// And "Drop it for now" for a short session: off her week until the area is better (drops.js).
+// With one exercise left, or none, dropping is the main button.
+function RestLine({ S, routine, place, writeFills, onDrop }) {
   const [open, setOpen] = useState(false)
   const c = sessionCount(S, routine, place)
   if (!c.resting.length) return null
@@ -113,6 +116,8 @@ function RestLine({ S, routine, place, writeFills }) {
   const key = fillKey(place.id, routine.id)
   const added = fillEntries(S, routine, place).map(e => EXIDX[e.id])
   const more = open ? fillSuggestions(S, routine, place) : []
+  const droppable = c.short && !added.length && !open && canDrop(S, routine.id)
+  const lone = c.kept <= 1
   return <div className="fk-fill">
     <p className={'fk-rest-line' + (c.short ? ' short' : '')}>
       {c.short && !added.length && <span className="fk-tag">{ft('Short session')}</span>}
@@ -128,7 +133,12 @@ function RestLine({ S, routine, place, writeFills }) {
       <button type="button" className="fk-link" onClick={() => writeFills(m => withFillAdded(m, key, s.ex.id))}>{ft('Add')}</button>
     </div>)}
     {open && !more.length && <p className="fk-swap-why">{ft('Nothing more to suggest here.')}</p>}
+    {droppable && lone && <>
+      <p className="fk-swap-why">{ft('Dropping takes it off your week until your {0} is better.', areas)}</p>
+      <button type="button" className="btn primary" onClick={() => onDrop(c.resting[0])}>{ft('Drop it for now')}</button>
+    </>}
     <button type="button" className="fk-link" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? ft('Done adding') : added.length ? ft('Add more') : ft('Build your own')}</button>
+    {droppable && !lone && <button type="button" className="fk-link" onClick={() => onDrop(c.resting[0])}>{ft('Drop it for now')}</button>}
   </div>
 }
 
@@ -141,20 +151,32 @@ export function SwapReview({ place, onDone }) {
   const groups = reviewList(S, S.routines, place)
   const total = groups.reduce((n, g) => n + g.rows.length, 0)
   const left = undecidedCount(S, S.routines, place)
-  if (!total) return <>
+  // Sessions she has dropped for now keep their place in the list, with the way back.
+  const dropped = droppedList(S)
+  const blocks = S.routines.map(r => groups.find(g => g.routine.id === r.id) || dropped.find(d => d.routine.id === r.id)).filter(Boolean)
+  if (!blocks.length) return <>
     <p className="fk-note">{ft('Everything in your plan fits {0}. Nothing to swap.', place.name)}</p>
     {onDone && <button type="button" className="btn primary" onClick={onDone}>{ft('Done')}</button>}
   </>
   return <>
-    <div className="fk-progress" role="img" aria-label={ft('{0} of {1} reviewed', total - left, total)}>
+    {total > 0 && <div className="fk-progress" role="img" aria-label={ft('{0} of {1} reviewed', total - left, total)}>
       <div className="fk-progress-bar"><div style={{ width: (100 * (total - left) / total) + '%' }} /></div>
       <span>{ft('{0} of {1} reviewed', total - left, total)}</span>
-    </div>
-    {groups.map(g => <div key={g.routine.id} className="fk-swap-group">
+    </div>}
+    {blocks.map(g => (g.rows ? <div key={g.routine.id} className="fk-swap-group">
       <h4 className="sec">{g.routine.name}</h4>
-      <RestLine S={S} routine={g.routine} place={place} writeFills={writeFills} />
+      <RestLine S={S} routine={g.routine} place={place} writeFills={writeFills} onDrop={lim => update(s => { dropSession(s, g.routine.id, lim) })} />
       {g.rows.map(row => <Row key={row.cfg.id} S={S} place={place} routine={g.routine} row={row} write={write} />)}
-    </div>)}
+    </div> : <div key={g.routine.id} className="fk-swap-group">
+      <h4 className="sec">{g.routine.name}</h4>
+      <div className="fk-fill">
+        <p className="fk-rest-line short">
+          <span className="fk-tag">{ft('Dropped')}</span>
+          <span>{ft('Off your week while you rest your {0}. It comes back when you say it is better.', ft(AREA_LABEL[g.lim]).toLowerCase())}</span>
+        </p>
+        <button type="button" className="fk-link" onClick={() => update(s => { bringBack(s, g.routine.id) })}>{ft('Bring it back')}</button>
+      </div>
+    </div>))}
     <div className="fk-onb-foot">
       {left > 0 && <button type="button" className="fk-link" onClick={() => write(m => approveAll(m, S, S.routines, place))}>{ft('Approve all suggestions')}</button>}
       {onDone && <button type="button" className="btn primary" onClick={onDone}>{left ? ft('Finish later') : ft('Done')}</button>}
