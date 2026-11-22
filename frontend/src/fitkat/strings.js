@@ -141,6 +141,7 @@ const RU = {
   '{0} has no kit for that one.': 'В месте «{0}» нет нужного инвентаря.',
   'That one loads your {0}. Choose another.': 'Это упражнение нагружает зону ({0}). Выберите другое.',
   'Choose one from the library.': 'Выберите упражнение из библиотеки.',
+  'That one shows a position, it is not an exercise. Choose another.': 'Здесь показано положение тела, это не упражнение. Выберите другое.',
   'Bone and': 'Кости и',
   'balance': 'баланс',
   'This week': 'На этой неделе',

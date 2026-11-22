@@ -3,7 +3,7 @@ import { EXIDX } from '../lib/exercises.js'
 import { setOverlay } from './brand.js'
 import { FLAGS, LISTS, WHYS, READ, POOL } from './limits-data.js'
 import { AREAS, limitsOf, withLimit, withoutLimit, limitOn, limitOffers, areasLoaded, areasRested, areasTouched, restInvolved, readLimit, KEEP_EASIER, KEEP_SHORTER } from './limits.js'
-import { routineAtPlace, routineForPlace, swapKey, withApproved, withKept, withDeclined, withSkipped, sessionCount, restCost, approveAll, fitOf, undecidedCount } from './place-swaps.js'
+import { routineAtPlace, routineForPlace, swapKey, withApproved, withChosen, withKept, withDeclined, withSkipped, readDecision, fitsPlace, sessionCount, restCost, approveAll, fitOf, undecidedCount } from './place-swaps.js'
 
 const byName = n => Object.values(EXIDX).find(e => e && e.n === n)?.id
 const SQUAT = byName('barbell full squat')
@@ -89,10 +89,24 @@ describe('what is flagged', () => {
 })
 
 describe('what she is offered', () => {
-  it('Go easy offers the first two steps of the ladder', () => {
+  it('Go easy offers the whole ladder, most load first, and then "Keep it, easier"', () => {
     const o = limitOffers(S(lim('knee', 'easy')), SQUAT)
-    expect(names(o.offers)).toEqual(['dumbbell goblet box squat', 'bodyweight quarter squat'])
+    expect(names(o.offers)).toEqual(['dumbbell goblet box squat', 'bodyweight quarter squat', 'static quadriceps contraction (isometric)', 'KEEP'])
     expect(o.offers[0].why).toMatch(/box at chair height or higher/)
+    expect(o.offers[2].hold).toBe(true)
+    expect(o.offers[3]).toEqual({ keep: true, why: KEEP_EASIER })
+  })
+  it('Go easy always ends on keeping it, exactly once, for every exercise with a ladder', () => {
+    for (const [id, row] of Object.entries(FLAGS)) for (const area of AREAS) {
+      if (typeof row[{ back: 'b' }[area] || area[0]] !== 'number') continue
+      const offers = limitOffers(S(lim(area, 'easy')), id).offers
+      expect(offers.filter(o => o.keep), id + ' ' + area).toHaveLength(1)
+      // Every step of the ladder is there: nothing is cut off after the second.
+      const steps = LISTS[row[{ back: 'b' }[area] || area[0]]]
+      const kept = steps.some(s => s[0] === 'a')
+      expect(offers.length, id + ' ' + area).toBeLessThanOrEqual(steps.length + (kept ? 0 : 1))
+      if (!kept) expect(offers[offers.length - 1], id + ' ' + area).toEqual({ keep: true, why: KEEP_EASIER })
+    }
   })
   it('Avoid offers every step after the first, the hold last', () => {
     const o = limitOffers(S(lim('knee', 'avoid')), SQUAT)
@@ -106,7 +120,7 @@ describe('what she is offered', () => {
   it('takes the first exercise of a step her place has the kit for', () => {
     const noDumbbells = ex => ex.eq !== 'dumbbell'
     const o = limitOffers(S(lim('knee', 'easy')), SQUAT, { fits: noDumbbells })
-    expect(names(o.offers)).toEqual(['bodyweight box squat', 'bodyweight quarter squat'])
+    expect(names(o.offers)).toEqual(['bodyweight box squat', 'bodyweight quarter squat', 'static quadriceps contraction (isometric)', 'KEEP'])
   })
   it('keeps positions fixed before the kit filter: Avoid never falls back to the first step', () => {
     const onlyDumbbells = ex => ex.eq === 'dumbbell'
@@ -114,7 +128,7 @@ describe('what she is offered', () => {
   })
   it('never offers what the routine already holds', () => {
     const o = limitOffers(S(lim('knee', 'easy')), SQUAT, { exclude: [BOX, BW_BOX] })
-    expect(names(o.offers)).toEqual(['bodyweight quarter squat'])
+    expect(names(o.offers)).toEqual(['bodyweight quarter squat', 'static quadriceps contraction (isometric)', 'KEEP'])
   })
   it('never offers a step that loads another of her limits', () => {
     // The quarter squat is a squat: it loads the hip too.
@@ -143,6 +157,8 @@ describe('what she is offered', () => {
     const easy = limitOffers(S(lim('shoulder', 'easy')), machine).offers
     expect(easy[0]).toMatchObject({ keep: true })
     expect(easy[0].why).toMatch(/same machine/)
+    // The ladder kept it already: "Keep it, easier" is not asked a second time at the end.
+    expect(easy.filter(o => o.keep)).toHaveLength(1)
     expect(names(limitOffers(S(lim('shoulder', 'avoid')), machine).offers)[0]).toBe('push-up (wall)')
   })
   it('keeps a band exercise with a lighter band, then its hold, and never sends it to other kit', () => {
@@ -167,12 +183,53 @@ describe('a routine under a limit', () => {
     expect(row.suggestion.ex.id).toBe(BOX)
     expect(row.suggestion.why).toMatch(/box/)
   })
-  it('moves one step down on "Suggest another", then asks whether to skip', () => {
-    let s = S(lim('knee', 'easy'))
-    s.placeSwaps = withDeclined({}, key, BOX, 1, 'knee')
-    expect(at(s).suggestion.ex.id).toBe(QUARTER)
-    s.placeSwaps = withDeclined(s.placeSwaps, key, QUARTER, 2, 'knee')
+  it('under Avoid moves one step down on "Suggest another", then asks whether to skip, with no "Keep it" on the way', () => {
+    let s = S(lim('knee', 'avoid'))
+    expect(at(s)).toMatchObject({ state: 'pending', more: true, suggestion: { ex: { id: QUARTER } } })
+    s.placeSwaps = withDeclined({}, key, QUARTER, 1, 'knee')
+    expect(at(s)).toMatchObject({ state: 'pending', more: false, suggestion: { ex: { id: THIGH_HOLD }, keep: false } })
+    s.placeSwaps = withDeclined(s.placeSwaps, key, THIGH_HOLD, 2, 'knee')
     expect(at(s).state).toBe('ask-skip')
+  })
+  it('under Go easy walks the whole ladder, then "Keep it, easier", then asks whether to skip', () => {
+    const s = S(lim('knee', 'easy'))
+    const seen = []
+    for (let i = 0; i < 9 && at(s).state === 'pending'; i++) {
+      const row = at(s)
+      seen.push([row.suggestion.keep ? 'KEEP' : row.suggestion.ex.id, row.more])
+      // "Keep it" is refused under the exercise's own id.
+      s.placeSwaps = withDeclined(s.placeSwaps, key, row.suggestion.ex.id, i + 1, 'knee')
+    }
+    // `more` is what the second button goes by: "Suggest another" while something follows, "Reject" on the last.
+    expect(seen).toEqual([[BOX, true], [QUARTER, true], [THIGH_HOLD, true], ['KEEP', false]])
+    expect(at(s)).toMatchObject({ state: 'ask-skip', declined: [BOX, QUARTER, THIGH_HOLD, SQUAT] })
+  })
+  it('lets her own choice from the library stand in under a limit, with the sets, reps and rest kept', () => {
+    const knee = S(lim('knee', 'easy'))
+    const own = Object.values(EXIDX).find(e => e && e.id !== BENCH && fitsPlace(e, place) && !limitOn(knee, e.id) && areasLoaded(e.id).includes('shoulder'))
+    const s = { ...knee, placeSwaps: withChosen(withDeclined({}, key, BOX, 1, 'knee'), key, own.id, 'knee', 2) }
+    expect(readDecision(s.placeSwaps[key])).toEqual({ to: own.id, own: true, declined: [BOX], lim: 'knee' })
+    expect(at(s)).toMatchObject({ state: 'approved', own: true, to: own, limit: { area: 'knee' } })
+    expect(routineForPlace(s, routine, place).ex.find(e => !e.mobility)).toEqual({ id: own.id, swappedFrom: SQUAT, limit: 'knee', sets: 3, reps: 8, rest: 120 })
+    // It is not a step of the ladder, so the same id without the mark does not stand.
+    expect(at({ ...knee, placeSwaps: withApproved({}, key, own.id, 2, 'knee') }).state).toBe('pending')
+    // A place without the kit for it asks again, and so does a limit she sets later that it loads.
+    expect(routineAtPlace(s, routine, { id: 'home', name: 'Home', equipment: [] })[0].state).not.toBe('approved')
+    expect(at({ ...s, bodyLimits: { ...s.bodyLimits, ...lim('shoulder', 'easy') } }).state).toBe('pending')
+    // Told to rest the area: skipped, whatever she chose before.
+    expect(at({ ...s, bodyLimits: lim('knee', 'avoid', true) })).toMatchObject({ state: 'skipped', rest: true })
+  })
+  it('does not let her own choice run twice in one session', () => {
+    const knee = S(lim('knee', 'easy'))
+    const press = byName('sled 45° leg press'), ext = byName('lever leg extension')
+    const gym = { id: 'gym', name: 'My gym', equipment: ['body weight', 'dumbbell', 'barbell', 'sled machine', 'leverage machine'] }
+    const legs = { id: 'r5', name: 'Legs', ex: [SQUAT, press, ext].map(id => ({ id, sets: 3, reps: 10 })).filter(c => limitOn(knee, c.id)) }
+    expect(legs.ex.length).toBeGreaterThan(1)
+    const own = Object.values(EXIDX).find(e => e && fitsPlace(e, gym) && !limitOn(knee, e.id) && e.eq === 'body weight')
+    let m = {}
+    for (const c of legs.ex.slice(0, 2)) m = withChosen(m, swapKey('gym', 'r5', c.id), own.id, 'knee', 1)
+    const rows = routineAtPlace({ ...knee, placeSwaps: m }, legs, gym)
+    expect(rows.filter(r => r.state === 'approved' && r.to.id === own.id).length).toBeLessThan(2)
   })
   it('runs the approved step: sets, reps and rest kept, the weight never inherited', () => {
     const s = { ...S(lim('knee', 'easy')), placeSwaps: withApproved({}, key, BOX, 1, 'knee') }

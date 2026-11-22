@@ -362,7 +362,7 @@ def plan(i, area, kit, bands=False):
     for st in full['entries']:
         ok = [(n, w) for n, w in zip(st['names'], st['whys']) if st['kind'] == ADJ or usable(n, kit, bands)]
         steps.append({'step': st['step'], 'what': st['what'], 'kind': st['kind'], 'name': ok[0][0] if ok else None, 'why': ok[0][1] if ok else None, 'needs': st['names'][0]})
-    easy = [x for x in steps[:2] if x['name']]
+    easy = [x for x in steps if x['name']]              # every entry (F4, owner 22 Nov); the app adds "Keep it, easier" last
     avoid = [x for x in steps[1:] if x['name']] if len(steps) > 1 else [x for x in steps if x['kind'] == H and x['name']]
     return {'movement': full['movement'], 'sits': full['start_why'] or 'at the top', 'steps': steps, 'easy': easy, 'avoid': avoid}
 

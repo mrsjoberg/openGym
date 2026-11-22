@@ -2009,7 +2009,7 @@ function usageMap(st) {
 }
 // The swap pickers' own scope (#473): exercises sharing the swapped exercise's target muscle.
 const SAME = '≈'
-function ExercisePicker({ onPick, title, close, like, actionIcon, backups, askCoach }) {
+function ExercisePicker({ onPick, title, close, like, actionIcon, backups, askCoach, allow }) {
   const st = useStore(s => s.S)
   const isSwap = !!like || title === t('Swap exercise') || title === t('Replace exercise') || title === 'Swap exercise' || title === 'Replace exercise'
   const quickIcon = actionIcon || (isSwap ? 'swap' : 'plus')
@@ -2044,7 +2044,8 @@ function ExercisePicker({ onPick, title, close, like, actionIcon, backups, askCo
   const bpStrip = useRef(null), eqStrip = useRef(null), catStrip = useRef(null)
   const onSearchFocus = useSheetKeyboard(searchRef)
   const moreRef = useAutoMore(() => setShown(s => s + 50))
-  const all = allExercises(st).filter(e => e.id !== like)
+  // FitKat: `allow` leaves out what must not be offered at all (an exercise that loads one of her limits).
+  const all = allExercises(st).filter(e => e.id !== like && (!allow || allow(e)))
   const gymS = gym == null ? st : { ...st, equipFilterOn: !!gym, activeEquipId: gym || st.activeEquipId }
   const profile = activeProfile(gymS)
   const profiles = st.equipProfiles || []
@@ -2196,7 +2197,7 @@ function ExercisePicker({ onPick, title, close, like, actionIcon, backups, askCo
 // train the same muscle, same equipment first (#473), with suggested substitutes on top and a gym
 // choice that filters only this list (#674).
 // `backups`: the slot's planned substitutes (lib/routine-backups.js), listed first in a swap.
-export const exercisePicker = (onPick, { title, like, actionIcon, backups, askCoach } = {}) => ui().openSheet(close => <ExercisePicker onPick={onPick} title={title} like={like} actionIcon={actionIcon} backups={backups} askCoach={askCoach} close={close} />)
+export const exercisePicker = (onPick, { title, like, actionIcon, backups, askCoach, allow } = {}) => ui().openSheet(close => <ExercisePicker onPick={onPick} title={title} like={like} actionIcon={actionIcon} backups={backups} askCoach={askCoach} allow={allow} close={close} />)
 
 /** Start a safe swap for one exact active-workout occurrence. */
 // `opts.askCoach`: offered at the top of the picker when the Coach can answer (#1003).

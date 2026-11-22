@@ -4,7 +4,8 @@
 // (place-swaps.js), and the routines themselves are never rewritten.
 //
 // An exercise that loads one of her limits (limits.js) is reviewed here too, and says so: the next
-// step of its ladder with the reason it asks less of the joint, or "Keep it, easier".
+// step of its ladder with the reason it asks less of the joint, or "Keep it, easier". Under Go easy
+// the skip question also lets her choose her own from the library.
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
@@ -19,10 +20,10 @@ import { Thumb } from '../components/Media.jsx'
 import { ft } from './strings.js'
 import { placesOf } from './places.js'
 import {
-  currentPlace, reviewList, undecidedCount, approveAll, fitsPlace, swapKey,
-  withApproved, withDeclined, withSkipped, withCleared, withKept, sessionCount,
+  currentPlace, reviewList, undecidedCount, approveAll, fitsPlace, swapKey, FORM_CHECK,
+  withApproved, withChosen, withDeclined, withSkipped, withCleared, withKept, sessionCount,
 } from './place-swaps.js'
-import { AREA_LABEL, limitOn } from './limits.js'
+import { AREA_LABEL, limitOn, limitsOf } from './limits.js'
 import { limitTag } from './Limits.jsx'
 import { fillKey, fillEntries, fillSuggestions, withFillAdded, withFillRemoved } from './fills.js'
 import { canDrop, droppedList, dropSession, bringBack } from './drops.js'
@@ -39,7 +40,7 @@ const reason = (row, s) => [
 // rows undecidedCount counts (place-swaps.js).
 const waits = row => row.state !== 'approved' && row.state !== 'skipped' && row.state !== 'kept'
 
-function Row({ S, place, routine, row, write, open, onOpen }) {
+function Row({ S, place, routine, row, write, open, onOpen, taken }) {
   const key = swapKey(place.id, routine.id, row.cfg.id)
   const from = nameOf(row.ex)
   // A row about a limit: its decisions carry the area, and its reasons come from the ladder.
@@ -47,19 +48,23 @@ function Row({ S, place, routine, row, write, open, onOpen }) {
   const area = lim ? ft(AREA_LABEL[lim]).toLowerCase() : ''
   // "No, let me choose": the whole library, opened on the same muscle and the kit of the place
   // she trains at, with search (openGym's own picker). What she picks has to be something the
-  // place can do, that is not in the session already, and that does not load one of her limits.
+  // place can do, that is not in the session already, and that does not load one of her limits:
+  // those are left out of the list, and refused if one is reached another way. Under Go easy the
+  // same question ends a ladder that has run out (owner, 22 Nov). Avoid does not offer it.
+  const canChoose = !lim || row.limit.mode === 'easy'
   const choose = () => {
     const say = text => useUI.getState().toast(text)
     const picker = exercisePicker(ex => {
       if (!ex?.id) return
       if (!EXIDX[ex.id]) return say(ft('Choose one from the library.'))
-      if (ex.id === row.cfg.id || routine.ex.some(e => e.id === ex.id)) return say(ft('{0} is already in this session.', nameOf(ex)))
+      if (FORM_CHECK.test(ex.n || '')) return say(ft('That one shows a position, it is not an exercise. Choose another.'))
+      if (ex.id === row.cfg.id || routine.ex.some(e => e.id === ex.id) || taken.includes(ex.id)) return say(ft('{0} is already in this session.', nameOf(ex)))
       if (!fitsPlace(ex, place)) return say(ft('{0} has no kit for that one.', place.name))
       const loads = limitOn(S, ex.id)
       if (loads) return say(ft('That one loads your {0}. Choose another.', ft(AREA_LABEL[loads.area]).toLowerCase()))
-      write(m => withApproved(m, key, ex.id))
+      write(m => (lim ? withChosen(m, key, ex.id, lim) : withApproved(m, key, ex.id)))
       picker.close()
-    }, { title: ft('Instead of {0}', from), like: row.cfg.id })
+    }, { title: ft('Instead of {0}', from), like: row.cfg.id, allow: limitsOf(S).length ? e => !FORM_CHECK.test(e.n || '') && !limitOn(S, e.id) : e => !FORM_CHECK.test(e.n || '') })
   }
   // One question at a time: the others wait as a line each, and a tap opens one.
   if (waits(row) && !open) return <button type="button" className="fk-swap done fk-swap-wait" onClick={onOpen}>
@@ -105,12 +110,13 @@ function Row({ S, place, routine, row, write, open, onOpen }) {
       {row.involves && <p className="fk-swap-why">{ft('This involves your {0} without training it.', ft(AREA_LABEL[row.involves]).toLowerCase())}</p>}
       <div className="fk-two">
         <button type="button" className="btn primary" onClick={() => write(m => (s.keep ? withKept(m, key, lim) : withApproved(m, key, s.ex.id, undefined, lim)))}>{ft('Approve')}</button>
-        <button type="button" className="btn fk-outline" onClick={() => write(m => withDeclined(m, key, s.ex.id, undefined, lim))}>{row.declined.length ? ft('Reject') : ft('Suggest another')}</button>
+        <button type="button" className="btn fk-outline" onClick={() => write(m => withDeclined(m, key, s.ex.id, undefined, lim))}>{(lim ? row.more : !row.declined.length) ? ft('Suggest another') : ft('Reject')}</button>
       </div>
     </div>
   }
   // Two refusals, or nothing the place can offer: the skip question, with what she turned down.
-  const said = [...new Set((row.declined || []).map(id => (EXIDX[id] ? nameOf(EXIDX[id]) : '')).filter(Boolean))]
+  // "Keep it, easier" is refused under the exercise's own id, and is listed by what it offered.
+  const said = [...new Set((row.declined || []).map(id => (id === row.cfg.id ? ft('Keep it, easier') : EXIDX[id] ? nameOf(EXIDX[id]) : '')).filter(Boolean))]
   return <div className="fk-swap open" role="group" aria-label={ft('Do you want to skip this exercise?')}>
     <div className="fk-swap-to big">{ft('Do you want to skip this exercise?')}</div>
     {lim && <div className="fk-tag">{limitTag(row.limit)}</div>}
@@ -120,9 +126,11 @@ function Row({ S, place, routine, row, write, open, onOpen }) {
     {said.length > 0 && <div className="fk-said-no"><span className="fk-eyebrow">{ft('You said no to')}</span>{said.map(n => <span key={n}>{n}</span>)}</div>}
     <div className="fk-two">
       <button type="button" className="btn primary" onClick={() => write(m => withSkipped(m, key, undefined, lim))}>{ft('Yes, skip it')}</button>
-      {lim ? <button type="button" className="btn fk-outline" onClick={() => write(m => withKept(m, key, lim))}>{ft('No, keep it')}</button>
-        : <button type="button" className="btn fk-outline" onClick={choose}>{ft('No, let me choose')}</button>}
+      {canChoose ? <button type="button" className="btn fk-outline" onClick={choose}>{ft('No, let me choose')}</button>
+        : <button type="button" className="btn fk-outline" onClick={() => write(m => withKept(m, key, lim))}>{ft('No, keep it')}</button>}
     </div>
+    {/* Go easy: keeping it is still open, also after she turned it down a step earlier. */}
+    {lim && canChoose && <button type="button" className="fk-link" onClick={() => write(m => withKept(m, key, lim))}>{ft('No, keep it')}</button>}
   </div>
 }
 
@@ -202,6 +210,7 @@ export function SwapReview({ place, onDone, only, onWhole }) {
       <h4 className="sec">{g.routine.name}</h4>
       <RestLine S={S} routine={g.routine} place={place} writeFills={writeFills} onDrop={lim => update(s => { dropSession(s, g.routine.id, lim) })} />
       {g.rows.map(row => <Row key={row.cfg.id} S={S} place={place} routine={g.routine} row={row} write={write}
+        taken={g.rows.filter(r => r !== row && r.state === 'approved' && r.to && !r.keep).map(r => r.to.id)}
         open={idOf(g, row) === openId} onOpen={() => setPicked(idOf(g, row))} />)}
     </div> : <div key={g.routine.id} className="fk-swap-group">
       <h4 className="sec">{g.routine.name}</h4>

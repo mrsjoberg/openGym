@@ -138,7 +138,7 @@ if __name__ == '__main__':
             if TAGS[i]['limits'].get(area) != 2: area = next(a for a in areas if TAGS[i]['limits'].get(a) == 2)
             kit = kit_of(i); o = offers(i, area, kit); ent = o['entries']
             show = lambda e: ('KEEP: ' if e['kind'] == 'adjust' else '') + e['names'][0]
-            easy = [show(e) for e in ent[:2]]; avoid = [show(e) for e in ent[1:]]
+            easy = [show(e) for e in ent]; avoid = [show(e) for e in ent[1:]]
             rows.append({'movement': m, 'exercise': EX[i]['name'], 'equipment': EX[i]['equipment'], 'area': area, 'kit': kit, 'sits': o['start_why'] or 'at the top',
                          'easy': easy, 'avoid': avoid, 'entries': [(e['names'][0], e['why'], e['kind']) for e in ent]})
     json.dump({'rows': rows}, open('pilot_sample2.json', 'w'), ensure_ascii=False)

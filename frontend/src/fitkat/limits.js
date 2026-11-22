@@ -12,7 +12,8 @@
 // asking less of the joint than the one before, a hold last. Here the ladder is cut to what she is
 // offered:
 //
-//   Go easy   the first two steps, then "Skip it?". With nothing left to offer: "Keep it, easier".
+//   Go easy   every step, then "Keep it, easier" (unless a step already said so), then "Skip it?".
+//             At the skip question she can also choose her own from the library (ReviewSwaps.jsx).
 //   Avoid     every step after the first, then "Skip it?". A one-step ladder only if it is a hold.
 //   Told to rest it (Avoid only): every exercise that loads the area is skipped. No ladder.
 //
@@ -160,7 +161,7 @@ export function limitOffers(S, exId, { fits = () => true, exclude = [] } = {}) {
   const loadsAnother = id => others.some(l => FLAGS[id]?.[CODE[l.area]] !== undefined || (l.rest && readLoads(id).includes(CODE[l.area])))
   const skip = new Set([exId, ...exclude])
   const steps = LISTS[flag] || []
-  const mine = easy ? steps.slice(0, 2) : steps.length > 1 ? steps.slice(1) : steps.filter(s => s[0] === 'h')
+  const mine = easy ? steps : steps.length > 1 ? steps.slice(1) : steps.filter(s => s[0] === 'h')
   const offers = []
   for (const [kind, body] of mine) {
     // Keep the same exercise, adjusted: the same machine, a lighter band, palms facing each other.
@@ -168,6 +169,8 @@ export function limitOffers(S, exId, { fits = () => true, exclude = [] } = {}) {
     const pick = body.find(([id]) => EXIDX[id] && !skip.has(id) && !loadsAnother(id) && fits(EXIDX[id]))
     if (pick) offers.push({ id: pick[0], why: WHYS[pick[1]], hold: kind === 'h' })
   }
-  if (!offers.length && easy) offers.push({ keep: true, why: KEEP_EASIER })
+  // Go easy ends on the exercise itself, lighter and slower, unless a step of the ladder already kept it
+  // (owner, 22 Nov). So there is always one more thing to say yes to before the skip question.
+  if (easy && !offers.some(o => o.keep)) offers.push({ keep: true, why: KEEP_EASIER })
   return { limit, rest: false, offers }
 }

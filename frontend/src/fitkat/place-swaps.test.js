@@ -5,8 +5,8 @@ import { buildSessionEntries } from '../lib/session-start.js'
 import { mergeStates } from '../lib/sync-merge.js'
 import {
   suggestSwaps, fitsPlace, routineAtPlace, routineForPlace, routineHere, fitOf, swapKey,
-  withApproved, withDeclined, withSkipped, withCleared, decisionOf, readDecision,
-  reviewList, undecidedCount, swappedCount, approveAll,
+  withApproved, withChosen, withDeclined, withSkipped, withCleared, decisionOf, readDecision,
+  reviewList, undecidedCount, swappedCount, approveAll, FORM_CHECK,
 } from './place-swaps.js'
 
 const ACC = { accV: 3 }
@@ -62,6 +62,13 @@ describe('suggestions', () => {
   it('never swaps a lift for a jump or a stretch', () => {
     for (const id of ['1060', '0085', '1061', '0586', '0043']) for (const place of [home, travel])
       for (const s of suggestSwaps(EXIDX[id], place, { n: 3 })) expect(['plyometrics', 'stretching', 'mobility', 'yoga', 'cardio'], s.ex.n).not.toContain(s.ex.cat)
+  })
+  it('never offers a demonstration of form in place of an exercise', () => {
+    const all = Object.values(EXIDX).filter(Boolean)
+    expect(all.filter(e => FORM_CHECK.test(e.n)).length).toBeGreaterThan(20)
+    // Whatever the kit, across every exercise of the built-in plan and the lifts the form checks show.
+    for (const id of ['1060', '0085', '2290', '1409', '0605', '1061', '0586', '0043', '0025']) for (const place of [home, gym, travel])
+      for (const s of suggestSwaps(EXIDX[id], place, { n: 40 })) expect(s.ex.n).not.toMatch(FORM_CHECK)
   })
   it('gives the same answer every time', () => {
     expect(suggestSwaps(EXIDX['0605'], home).map(s => s.ex.id)).toEqual(suggestSwaps(EXIDX['0605'], home).map(s => s.ex.id))
@@ -151,6 +158,13 @@ describe('sync', () => {
     const merged = mergeStates(phone, laptop)
     expect(merged.placeSwaps[k1].to).toBe('4742')
     expect(merged.placeSwaps[k2].to).toBe('1459')
+  })
+  it('carries her own choice under a limit across devices, mark and all', () => {
+    const k = swapKey('home', 'r1', '1060')
+    const phone = { placeSwaps: withChosen({}, k, '4742', 'hip', 7) }
+    const laptop = { placeSwaps: withDeclined({}, k, '1459', 3, 'hip') }
+    expect(readDecision(mergeStates(phone, laptop).placeSwaps[k])).toEqual({ to: '4742', own: true, declined: [], lim: 'hip' })
+    expect(readDecision(mergeStates(laptop, phone).placeSwaps[k])).toEqual({ to: '4742', own: true, declined: [], lim: 'hip' })
   })
 })
 

@@ -14,7 +14,9 @@
 // ladder of gentler versions comes before the kit question, and only steps the place can do are
 // offered. Such a decision carries `lim`, the area it was made for, and may be `{ keep: true }`:
 // keep the exercise, easier. It counts only while that limit is hers, so taking the limit away
-// brings the original back.
+// brings the original back. Under Go easy she may also pick her own from the library once the
+// ladder has run out: `{ to, own: true }`, which stands while the place can do it and it loads
+// none of her limits.
 //
 // A stamped map (lib/sync-merge.js STAMPED_MAPS, mirrored in api/sync-stamps.js): each decision
 // carries its own edit time and syncs on its own, the newer one winning.
@@ -49,8 +51,11 @@ const overlap = (a, b) => {
   for (const x of a) if (b.has(x)) inter++
   return inter ? inter / (a.size + b.size - inter) : 0
 }
+// A demonstration of form ("squat back (form check)"), not an exercise: the limits rules never flag
+// one and never replace one, so it is never offered and cannot be chosen as a replacement either.
+export const FORM_CHECK = /form check/i
 // Never a stand-in for a working set, whatever muscle it shares with one.
-export const NOT_A_LIFT = /stretch|isometric|squeeze|yoga|\bpose\b|toe touch|\broll(er)?\b|mobility|circles|warm-?up|boxing|against wall/i
+export const NOT_A_LIFT = /form check|stretch|isometric|squeeze|yoga|\bpose\b|toe touch|\broll(er)?\b|mobility|circles|warm-?up|boxing|against wall/i
 // Kinds of exercise that only stand in for their own kind: a jump is not a set of hip thrusts.
 const OTHER_KINDS = new Set(['plyometrics', 'stretching', 'mobility', 'yoga', 'cardio', 'rehab', 'combat'])
 export const NEEDS_BALL = /exercise ball|stability ball|swiss ball|bosu/i
@@ -117,7 +122,7 @@ export function readDecision(entry) {
   const lim = typeof entry.lim === 'string' && entry.lim ? { lim: entry.lim } : {}
   if (entry.skip === true) return { skip: true, declined, ...lim }
   if (entry.keep === true) return { keep: true, declined, ...lim }
-  if (typeof entry.to === 'string' && entry.to) return { to: entry.to, declined, ...lim }
+  if (typeof entry.to === 'string' && entry.to) return { to: entry.to, declined, ...lim, ...(entry.own === true ? { own: true } : {}) }
   return declined.length ? { declined, ...lim } : null
 }
 
@@ -135,6 +140,10 @@ const forLimit = lim => (lim ? { lim } : {})
 /** S.placeSwaps with the replacement approved. `lim` is the area, when the question was about a limit. */
 export const withApproved = (map, key, toId, now = Date.now(), lim) =>
   stamped(map, key, { to: toId, declined: declinedOf(map, key, lim).filter(id => id !== toId), ...forLimit(lim) }, now)
+
+/** S.placeSwaps with her own choice from the library standing in under a limit ("No, let me choose"). */
+export const withChosen = (map, key, toId, lim, now = Date.now()) =>
+  stamped(map, key, { to: toId, own: true, declined: declinedOf(map, key, lim).filter(id => id !== toId), ...forLimit(lim) }, now)
 
 /** S.placeSwaps with the exercise kept under a limit: the same exercise, easier. */
 export const withKept = (map, key, lim, now = Date.now()) =>
@@ -215,7 +224,9 @@ export function routineAtPlace(S, routine, place) {
 
 // An exercise that loads one of her limits, as it stands at a place. Told to rest it: skipped, with
 // nothing to decide. Otherwise the next step of its ladder she has not refused; with none left, the
-// skip question. "Keep it" is refused under the exercise's own id.
+// skip question. "Keep it" is refused under the exercise's own id. `more` says another offer follows
+// the one on screen. Her own choice from the library (`own`) is not a step of the ladder: it stands
+// while the place can do it, nothing else in the session runs as it, and it loads none of her limits.
 function limitRow(S, cfg, ex, place, held, limit, d) {
   const declined = d?.declined || []
   const { rest, offers } = limitOffers(S, cfg.id, { fits: c => fitsPlace(c, place), exclude: held })
@@ -224,10 +235,12 @@ function limitRow(S, cfg, ex, place, held, limit, d) {
   if (d?.keep) return { cfg, ex, state: 'approved', limit, keep: true, to: ex, declined }
   const approved = d?.to ? offers.find(o => o.id === d.to) : null
   if (approved) return { cfg, ex, state: 'approved', limit, to: EXIDX[approved.id], hold: !!approved.hold, why: approved.why, declined }
-  const next = offers.find(o => !declined.includes(o.keep ? cfg.id : o.id))
+  const own = d?.to && d.own ? EXIDX[d.to] : null
+  if (own && !held.includes(own.id) && fitsPlace(own, place) && !limitOn(S, own.id)) return { cfg, ex, state: 'approved', limit, to: own, own: true, declined }
+  const [next, ...later] = offers.filter(o => !declined.includes(o.keep ? cfg.id : o.id))
   if (!next) return { cfg, ex, state: 'ask-skip', limit, declined }
   const suggestion = { ex: next.keep ? ex : EXIDX[next.id], keep: !!next.keep, hold: !!next.hold, why: next.why, sameMovement: true, loose: false }
-  return { cfg, ex, state: 'pending', limit, suggestion, declined }
+  return { cfg, ex, state: 'pending', limit, suggestion, more: later.length > 0, declined }
 }
 
 /** How a routine fits a place: { total, fits, swaps, undecided, skipped }. `swaps` counts every exercise the kit cannot do. */
