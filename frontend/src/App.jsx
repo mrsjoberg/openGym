@@ -394,7 +394,8 @@ function Shell() {
   useNfcTagLinks(setupDone)
   // A friend's routine link (components/RoutineShare.jsx): the same wait for the setup.
   useRoutineLinks(setupDone)
-  useTourOffer(setupDone, loadTour)
+  // FitKat: not over its own setup. The question comes once she is through it.
+  useTourOffer(setupDone && !fitkatSetup, loadTour)
   // The boot screen in index.html covers the start; it goes once there is something to show.
   useEffect(() => { if (ready || authed) hideBoot() }, [ready, authed])
   if (!ready && !authed) return (

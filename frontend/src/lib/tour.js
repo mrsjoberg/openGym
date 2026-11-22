@@ -9,6 +9,7 @@
 // on the phone says nothing about the laptop. Nothing about it leaves the device.
 import { useSyncExternalStore } from 'react'
 import { t } from './i18n.js'
+import { overlayOn } from '../fitkat/brand.js'
 
 const KEY = 'gym_tour_v1'
 
@@ -67,6 +68,10 @@ export const STEPS = [
   { id: 'data', route: '/settings', anchor: 'settings-data' },
   { id: 'done', route: null, anchor: null },
 ]
+
+// FitKat's fourth tab opens Bone and balance, not Stats, so the stops that send her to Stats and
+// point around it would never be reached: the tour goes from the practice workout to Settings.
+const NOT_IN_FITKAT = new Set(['go-stats', 'stats', 'stats-body', 'stats-records', 'go-home'])
 
 const routineOf = c => c.S?.routines?.find(r => r.id === c.made)
 const inSettings = c => /^\/settings(\/|$)/.test(c.path || '')
@@ -166,7 +171,7 @@ export const TUTORIAL_COPY = {
 
 /** The stops of `flow` for this profile, in order. `ctx`: { plannedDays, rest, swipe, balance, workouts }. */
 export function tourSteps(ctx = {}, flow = 'tour') {
-  return (FLOWS[flow] || STEPS).filter(s => !s.when || s.when(ctx))
+  return (FLOWS[flow] || STEPS).filter(s => (!s.when || s.when(ctx)) && !(overlayOn() && NOT_IN_FITKAT.has(s.id)))
 }
 
 /** Where to go from `i` in direction `dir` (+1 / -1): the index, or -1 past either end. */
