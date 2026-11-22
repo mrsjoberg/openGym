@@ -143,6 +143,8 @@ import FitkatCheckin from './fitkat/Checkin.jsx'
 import { withSoreAreas, goEasierWhereSore, markEased, withPending, easePending, checkinOf, easierOffer, formFromTiles } from './fitkat/checkin.js'
 import { ft } from './fitkat/strings.js'
 import { asksPlace, placeMenu } from './fitkat/place-switch.jsx'
+import { dueCount } from './fitkat/due.js'
+import { dueReviewSheet } from './fitkat/DueReview.jsx'
 import { sleepHoursOn } from './lib/vitals.js'
 import DailyCheckin from './components/DailyCheckin.jsx'
 
@@ -4011,8 +4013,14 @@ export function startFlow(routineIds, opts = {}) {
   if (overlayOn() && !opts.placed && asksPlace(S())) {
     const on = () => startFlow(routineIds, { ...opts, placed: true })
     const ids = Array.isArray(routineIds) ? routineIds : routineIds ? [routineIds] : []
-    placeMenu({ routines: S().routines.filter(r => ids.includes(r.id)), onSame: on, onSwitched: on, onStay: on })
+    placeMenu({ routines: S().routines.filter(r => ids.includes(r.id)), onSame: on, onSwitched: on, onStay: on, onReview: on })
     return
+  }
+  // FitKat: this session's open questions (a gentler version for a limit, a swap for kit the place
+  // lacks) are answered before it starts, the first time it is due (fitkat/due.js; owner, 22 Nov).
+  if (overlayOn() && !opts.reviewed) {
+    const ids = Array.isArray(routineIds) ? routineIds : routineIds ? [routineIds] : []
+    if (dueCount(S(), ids) > 0) { dueReviewSheet(ids, () => startFlow(routineIds, { ...opts, placed: true, reviewed: true })); return }
   }
   // The daily-form check-in comes first (v1.4.5, lib/daily-form.js): only when switched on
   // (Settings → Workout), never with the Health module off, once a day.

@@ -14,9 +14,10 @@ import { currentPlace, switchCost } from './place-swaps.js'
 /**
  * Move to `place`. `routines` are the session it is about (today's when left out). `onSwitched`
  * runs once she is there with nothing to decide, or was there already; `onStay` when she chooses
- * to stay. Choosing to review takes her to the review and runs neither.
+ * to stay. Choosing to review takes her to the review and runs neither, unless `onReview` is
+ * given: at the start of a session the review is the start's own next step (sheets.jsx startFlow).
  */
-export function switchPlace(place, { routines, onStay, onSwitched } = {}) {
+export function switchPlace(place, { routines, onStay, onSwitched, onReview } = {}) {
   const store = useStore.getState()
   const S = store.S
   const here = currentPlace(S)
@@ -34,20 +35,20 @@ export function switchPlace(place, { routines, onStay, onSwitched } = {}) {
     message: (fits > 0 ? ft('{0} already fit.', fits) + ' ' : '') + ft('You approve each swap before it changes.'),
     confirmText: need === 1 ? ft('Review 1 swap') : ft('Review {0} swaps', need),
     cancelText: here ? ft('Stay at {0}', here.name) : undefined,
-    onConfirm: () => { move(); window.location.hash = scoped ? '#/swaps?scope=today' : '#/swaps' },
+    onConfirm: () => { move(); if (onReview) onReview(); else window.location.hash = scoped ? '#/swaps?scope=today' : '#/swaps' },
     onCancel: onStay,
   })
 }
 
 /** The sheet that lists her places. `onSame` runs when she picks the one she is at. */
-export function placeMenu({ routines, onSame, onStay, onSwitched } = {}) {
+export function placeMenu({ routines, onSame, onStay, onSwitched, onReview } = {}) {
   const S = useStore.getState().S
   const here = currentPlace(S)
   menuSheet({
     title: ft('Where are you training today?'),
     items: placesOf(S).map(p => ({
       icon: p.id === here?.id ? 'check' : undefined, label: p.name, sub: kitSummary(p, ft),
-      onClick: () => (p.id === here?.id ? onSame && onSame() : switchPlace(p, { routines, onStay, onSwitched })),
+      onClick: () => (p.id === here?.id ? onSame && onSame() : switchPlace(p, { routines, onStay, onSwitched, onReview })),
     })),
   })
 }

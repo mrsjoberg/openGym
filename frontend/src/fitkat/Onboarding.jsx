@@ -3,7 +3,8 @@
 // place, exactly as openGym does, and all of this is in Settings afterwards.
 import { useEffect, useState } from 'react'
 import { useStore } from '../store/useStore.js'
-import { useLang } from '../lib/i18n.js'
+import { t, useLang } from '../lib/i18n.js'
+import { DAYN, todayISO } from '../lib/format.js'
 import Icon from '../components/Icon.jsx'
 import { ft } from './strings.js'
 import KitPicker from './KitPicker.jsx'
@@ -12,12 +13,16 @@ import { PLACE_KINDS, addPlaces, chipCount, makePlace } from './places.js'
 import { SwapReview } from './ReviewSwaps.jsx'
 import { LimitsStep } from './Limits.jsx'
 import { womenDefaults } from './profile.js'
+import { dueBySession, dueTotal } from './due.js'
 
 const STEPS = 5
 
 export default function Onboarding() {
   const update = useStore(s => s.update)
+  const S = useStore(s => s.S)
   useLang()
+  // Step 5: answer each session when it comes up, or everything now.
+  const [how, setHow] = useState('due')
   const [step, setStep] = useState('places')
   const [picked, setPicked] = useState(['gym', 'home'])
   const [places, setPlaces] = useState([])
@@ -79,7 +84,9 @@ export default function Onboarding() {
   // Anything to work around: asked once, here, and changed afterwards only in Settings.
   if (step === 'limits') return <LimitsStep eyebrow={ft('Step {0} of {1}', 3, STEPS)} onDone={() => setStep('programme')} onBack={() => setStep('kit')} />
 
-  if (step === 'review') return <div className="fk-onb">
+  // The whole list at once: her choice in step 5, and what the step is when nothing waits.
+  const sessions = step === 'review' ? dueBySession(S, places[0]) : []
+  if (step === 'review-all' || (step === 'review' && !sessions.length)) return <div className="fk-onb">
     <div className="fk-onb-head">
       <div className="fk-eyebrow">{ft('Step {0} of {1}', 5, STEPS)} · {places[0]?.name}</div>
       <h1>{ft('Review your')} <em>{ft('plan')}</em>.</h1>
@@ -87,6 +94,45 @@ export default function Onboarding() {
     </div>
     <SwapReview place={places[0]} onDone={finish} />
   </div>
+
+  // Step 5 (owner, 22 Nov): the list of every exercise at once was the heavy part of the setup. She
+  // chooses: each session's questions the first time she starts it (due.js), or all of them now.
+  if (step === 'review') {
+    const total = dueTotal(sessions)
+    const today = todayISO()
+    const count = n => (n === 1 ? ft('1 exercise') : ft('{0} exercises', n))
+    const options = [
+      { id: 'due', title: ft('As each session comes up'), sub: ft('You answer the questions for a session the first time you start it.') },
+      { id: 'all', title: ft('Everything now'), sub: ft('All of them in one list, before you finish the setup.') },
+    ]
+    return <div className="fk-onb">
+      <div className="fk-onb-head">
+        <div className="fk-eyebrow">{ft('Step {0} of {1}', 5, STEPS)} · {places[0]?.name}</div>
+        <h1>{ft('Review your')} <em>{ft('plan')}</em>.</h1>
+        <p>{ft('To decide: {0} in {1}.', count(total), sessions.length === 1 ? ft('1 session') : ft('{0} sessions', sessions.length))} {ft('Each is a gentler version for a limit, or a swap for equipment {0} does not have. Nothing changes until you approve.', places[0].name)}</p>
+      </div>
+      <div className="fk-ci-opts" role="radiogroup" aria-label={ft('Review your') + ' ' + ft('plan')}>
+        {options.map(o => <button key={o.id} type="button" role="radio" aria-checked={how === o.id} className={'fk-ci-opt' + (how === o.id ? ' on' : '')} onClick={() => setHow(o.id)}>
+          <span className={'fk-radio' + (how === o.id ? ' on' : '')} aria-hidden="true" />
+          <span className="fk-opt-text"><span className="fk-swap-to">{o.title}</span><span className="fk-prog-about">{o.sub}</span></span>
+        </button>)}
+      </div>
+      <div className="fk-due-list">
+        <div className="fk-eyebrow">{ft('When each comes up')}</div>
+        <ul>
+          {sessions.map(g => <li key={g.routine.id}>
+            <span className="fk-due-day">{!g.iso ? ft('Not on a day yet') : g.iso === today ? ft('Today') : t(DAYN[g.weekday])}</span>
+            <span className="fk-due-name">{g.routine.name}</span>
+            <span className="fk-due-count">{count(g.count)}</span>
+          </li>)}
+        </ul>
+      </div>
+      <div className="fk-onb-foot">
+        <button type="button" className="btn primary" onClick={how === 'due' ? finish : () => setStep('review-all')}>
+          {how === 'due' ? ft('Done') : total === 1 ? ft('Review 1 now') : ft('Review {0} now', total)}</button>
+      </div>
+    </div>
+  }
 
   return <div className="fk-onb">
     <div className="fk-onb-head">

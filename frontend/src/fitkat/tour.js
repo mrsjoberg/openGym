@@ -8,7 +8,7 @@
 //   fk-today     what Home opens on
 //   fk-tags      the labels on today's exercises
 //   fk-place     the place menu, and that changing place asks first
-//   fk-start     Start, and the check-in that comes before a session
+//   fk-start     Start: a session's questions the first time (due.js), and the check-in every time
 //   fk-workout   a workout in one card
 //   fk-limit     the label under an exercise changed for a limit (only when she set a limit)
 //   fk-progress  the Progress tab: bone and balance
@@ -40,7 +40,7 @@ export const FK_COPY = {
   'fk-today': () => [ft('Today, first'), ft('Home opens on today: what you train, where, and about how long it takes. On a rest day it says so and shows what comes next.')],
   'fk-tags': () => [ft('The small labels'), ft('On a training day every exercise is listed as you will do it at this place. A label says what changed: Go easy or Avoid for a limit you set, Swapped when the place lacks the equipment, Mobility for a short warm-up, Sore area for something you said is sore today.')],
   'fk-place': () => [ft('Where you train'), ft('Training somewhere else today? Change the place here. If the session needs other equipment there, FitKat asks before it changes anything.')],
-  'fk-start': () => [ft('Start, and one question'), ft('Before a session FitKat asks if anything is off today. Say what is, and it offers an easier session. If nothing is, that is one tap.')],
+  'fk-start': () => [ft('Start, and one question'), ft('The first time you start a session, FitKat asks about any exercise it would change for you. Then, every time, one question: is anything off today? Say what is, and it offers an easier session.')],
   'fk-workout': () => [ft('In a workout'), ft('Each row is a set: the weight, then the reps. Tick a set when it is done and the rest clock starts by itself. Next moves to the following exercise, and Finish saves the session.')],
   'fk-limit': () => [ft('With a limit'), ft('An exercise changed for a limit keeps its label in the workout. A mild ache that has settled by tomorrow is fine. Sharper than that, stop that exercise. "Skip it today" takes it out of this session only.')],
   'fk-progress': () => [ft('Progress'), ft('Bone and balance are behind this tab: four weekly counts for strength, impact, balance and posture. They fill up from the sessions you log.')],

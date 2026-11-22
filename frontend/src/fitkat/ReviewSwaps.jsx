@@ -173,11 +173,12 @@ function RestLine({ S, routine, place, writeFills, onDrop }) {
 }
 
 /**
- * The review itself, shared by its own screen and the last step of onboarding. With `only`
+ * The review itself, shared by its own screen, the setup and the start of a session. With `only`
  * (routine ids) it covers those sessions alone, today's when it is opened from Home, and
- * `onWhole` opens the rest of the plan.
+ * `onWhole` opens the rest of the plan. `mustFinish`: no way on until everything is answered (the
+ * start of a session, DueReview.jsx), and then the button reads `doneLabel`.
  */
-export function SwapReview({ place, onDone, only, onWhole }) {
+export function SwapReview({ place, onDone, only, onWhole, mustFinish = false, doneLabel }) {
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
   const write = fn => update(s => { s.placeSwaps = fn(s.placeSwaps) })
@@ -225,7 +226,7 @@ export function SwapReview({ place, onDone, only, onWhole }) {
     <div className="fk-onb-foot">
       {left > 0 && <button type="button" className="fk-link" onClick={() => write(m => approveAll(m, S, routines, place))}>{ft('Approve all suggestions')}</button>}
       {whole}
-      {onDone && <button type="button" className="btn primary" onClick={onDone}>{left ? ft('Finish later') : ft('Done')}</button>}
+      {onDone && !(mustFinish && left > 0) && <button type="button" className="btn primary" onClick={onDone}>{left ? ft('Finish later') : doneLabel || ft('Done')}</button>}
     </div>
   </>
 }

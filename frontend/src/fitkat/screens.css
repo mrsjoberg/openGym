@@ -199,3 +199,12 @@
 .fk-places-sec{margin:28px 0 0;padding-bottom:8px}
 .fk-places-sec~.fk-limit-row{font-size:.875rem;min-height:56px}
 .fk-pretend{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+/* Setup, step 5: which session asks about how many exercises, in the order she will meet them (due.js). */
+.fk-due-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.fk-due-list ul{list-style:none;margin:0;padding:0;border-top:1px solid var(--sep)}
+.fk-due-list li{display:grid;grid-template-columns:7.5rem minmax(0,1fr) auto;align-items:baseline;gap:12px;min-height:48px;padding:12px 0;border-bottom:1px solid var(--sep);font-size:.9375rem}
+.fk-due-day{color:var(--label-2);font-size:.8125rem}
+.fk-due-name{overflow-wrap:anywhere}
+.fk-due-count{color:var(--label-2);font-size:.8125rem;white-space:nowrap}
+/* The same review in a sheet, before a session starts (DueReview.jsx). */
+.fk-due .fk-onb-foot{margin-top:8px}
