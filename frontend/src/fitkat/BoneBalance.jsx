@@ -85,13 +85,17 @@ export default function BoneBalance() {
   }
 
   return <div className="narrow fk-page">
+    {/* The Progress tab opens here, so there is no way back to draw: Stats is one tap further in. */}
     <div className="hdr">
-      <button className="iconbtn" data-back="/home" onClick={() => nav(-1)} aria-label={ft('Back')}><Icon name="chevronLeft" /></button>
-      <div style={{ flex: 1, margin: '0 12px', minWidth: 0 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <h1>{ft('Bone and')} <em>{ft('balance')}</em>.</h1>
         <div className="sub">{ft('This week')}</div>
       </div>
     </div>
+    <button type="button" className="fk-place-note quiet" onClick={() => nav('/stats')}>
+      <span>{ft('Stats and history')}</span>
+      <span className="fk-link">{ft('Open')}</span>
+    </button>
 
     <div className="fk-list">
       {MEASURES.map(m => {

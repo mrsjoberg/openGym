@@ -6,21 +6,23 @@
 // An exercise that loads one of her limits (limits.js) is reviewed here too, and says so: the next
 // step of its ladder with the reason it asks less of the joint, or "Keep it, easier".
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
+import { useUI } from '../store/useUI.js'
 import { useLang } from '../lib/i18n.js'
-import { exerciseNameText } from '../lib/format.js'
+import { exerciseNameText, todayISO } from '../lib/format.js'
 import { EXIDX } from '../lib/exercises.js'
-import { menuSheet } from '../sheets.jsx'
+import { effectiveRoutineIds } from '../lib/history.js'
+import { exercisePicker } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Thumb } from '../components/Media.jsx'
 import { ft } from './strings.js'
 import { placesOf } from './places.js'
 import {
-  currentPlace, reviewList, undecidedCount, approveAll, suggestSwaps, swapKey,
+  currentPlace, reviewList, undecidedCount, approveAll, fitsPlace, swapKey,
   withApproved, withDeclined, withSkipped, withCleared, withKept, sessionCount,
 } from './place-swaps.js'
-import { AREA_LABEL } from './limits.js'
+import { AREA_LABEL, limitOn } from './limits.js'
 import { limitTag } from './Limits.jsx'
 import { fillKey, fillEntries, fillSuggestions, withFillAdded, withFillRemoved } from './fills.js'
 import { canDrop, droppedList, dropSession, bringBack } from './drops.js'
@@ -39,14 +41,21 @@ function Row({ S, place, routine, row, write }) {
   // A row about a limit: its decisions carry the area, and its reasons come from the ladder.
   const lim = row.limit?.area
   const area = lim ? ft(AREA_LABEL[lim]).toLowerCase() : ''
-  // "No, let me choose": more of what the place can do for the same muscle, hers to pick from.
+  // "No, let me choose": the whole library, opened on the same muscle and the kit of the place
+  // she trains at, with search (openGym's own picker). What she picks has to be something the
+  // place can do, that is not in the session already, and that does not load one of her limits.
   const choose = () => {
-    const held = routine.ex.map(e => e.id)
-    const more = suggestSwaps(row.ex, place, { exclude: held, n: 8 })
-    menuSheet({
-      title: ft('Instead of {0}', from),
-      items: more.map(s => ({ label: nameOf(s.ex), sub: s.loose ? ft('Works nearby muscles') : undefined, onClick: () => write(m => withApproved(m, key, s.ex.id)) })),
-    })
+    const say = text => useUI.getState().toast(text)
+    const picker = exercisePicker(ex => {
+      if (!ex?.id) return
+      if (!EXIDX[ex.id]) return say(ft('Choose one from the library.'))
+      if (ex.id === row.cfg.id || routine.ex.some(e => e.id === ex.id)) return say(ft('{0} is already in this session.', nameOf(ex)))
+      if (!fitsPlace(ex, place)) return say(ft('{0} has no kit for that one.', place.name))
+      const loads = limitOn(S, ex.id)
+      if (loads) return say(ft('That one loads your {0}. Choose another.', ft(AREA_LABEL[loads.area]).toLowerCase()))
+      write(m => withApproved(m, key, ex.id))
+      picker.close()
+    }, { title: ft('Instead of {0}', from), like: row.cfg.id })
   }
   // It only involves an area she was told to rest: kept unless she says otherwise.
   if (row.state === 'ask-rest') return <div className="fk-swap open">
@@ -83,6 +92,8 @@ function Row({ S, place, routine, row, write }) {
       <div className="fk-swap-ex"><Thumb ex={s.ex} /><div><div className="fk-tag">{lim ? limitTag(row.limit) : row.declined.length ? ft('Second suggestion') : ft('Suggested')}</div>
         <div className="fk-swap-to big">{s.keep ? ft('Keep it, easier') : nameOf(s.ex)}{s.hold ? ' · ' + ft('hold') : ''}</div></div></div>
       <p className="fk-swap-why">{lim ? ft(s.why) : reason(row, s)}</p>
+      {/* A stand-in for the kit that involves an area she rests: said, so that approving it is her call. */}
+      {row.involves && <p className="fk-swap-why">{ft('This involves your {0} without training it.', ft(AREA_LABEL[row.involves]).toLowerCase())}</p>}
       <div className="fk-two">
         <button type="button" className="btn primary" onClick={() => write(m => (s.keep ? withKept(m, key, lim) : withApproved(m, key, s.ex.id, undefined, lim)))}>{ft('Approve')}</button>
         <button type="button" className="btn fk-outline" onClick={() => write(m => withDeclined(m, key, s.ex.id, undefined, lim))}>{row.declined.length ? ft('Reject') : ft('Suggest another')}</button>
@@ -142,20 +153,28 @@ function RestLine({ S, routine, place, writeFills, onDrop }) {
   </div>
 }
 
-/** The review itself, shared by its own screen and the last step of onboarding. */
-export function SwapReview({ place, onDone }) {
+/**
+ * The review itself, shared by its own screen and the last step of onboarding. With `only`
+ * (routine ids) it covers those sessions alone, today's when it is opened from Home, and
+ * `onWhole` opens the rest of the plan.
+ */
+export function SwapReview({ place, onDone, only, onWhole }) {
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
   const write = fn => update(s => { s.placeSwaps = fn(s.placeSwaps) })
   const writeFills = fn => update(s => { s.placeFills = fn(s.placeFills) })
-  const groups = reviewList(S, S.routines, place)
+  const routines = only ? S.routines.filter(r => only.includes(r.id)) : S.routines
+  const groups = reviewList(S, routines, place)
   const total = groups.reduce((n, g) => n + g.rows.length, 0)
-  const left = undecidedCount(S, S.routines, place)
+  const left = undecidedCount(S, routines, place)
   // Sessions she has dropped for now keep their place in the list, with the way back.
   const dropped = droppedList(S)
-  const blocks = S.routines.map(r => groups.find(g => g.routine.id === r.id) || dropped.find(d => d.routine.id === r.id)).filter(Boolean)
+  const blocks = routines.map(r => groups.find(g => g.routine.id === r.id) || dropped.find(d => d.routine.id === r.id)).filter(Boolean)
+  const more = only ? undecidedCount(S, S.routines, place) - left : 0
+  const whole = only && onWhole && <button type="button" className="fk-link" onClick={onWhole}>{more > 0 ? ft('Review the whole plan ({0} more)', more) : ft('Review the whole plan')}</button>
   if (!blocks.length) return <>
-    <p className="fk-note">{ft('Everything in your plan fits {0}. Nothing to swap.', place.name)}</p>
+    <p className="fk-note">{only ? ft('Today\u2019s session fits {0}. Nothing to swap.', place.name) : ft('Everything in your plan fits {0}. Nothing to swap.', place.name)}</p>
+    {whole}
     {onDone && <button type="button" className="btn primary" onClick={onDone}>{ft('Done')}</button>}
   </>
   return <>
@@ -178,7 +197,8 @@ export function SwapReview({ place, onDone }) {
       </div>
     </div>))}
     <div className="fk-onb-foot">
-      {left > 0 && <button type="button" className="fk-link" onClick={() => write(m => approveAll(m, S, S.routines, place))}>{ft('Approve all suggestions')}</button>}
+      {left > 0 && <button type="button" className="fk-link" onClick={() => write(m => approveAll(m, S, routines, place))}>{ft('Approve all suggestions')}</button>}
+      {whole}
       {onDone && <button type="button" className="btn primary" onClick={onDone}>{left ? ft('Finish later') : ft('Done')}</button>}
     </div>
   </>
@@ -189,14 +209,19 @@ export default function ReviewSwaps() {
   const nav = useNavigate()
   useLang()
   const place = currentPlace(S) || placesOf(S)[0] || null
+  // Opened from Home it covers today's session only (/swaps?scope=today); the whole plan is one tap away.
+  const [params] = useSearchParams()
+  const [all, setAll] = useState(params.get('scope') !== 'today')
+  const todays = effectiveRoutineIds(S, todayISO())
+  const only = !all && todays.length ? todays : null
   return <div className="narrow fk-page">
     <div className="hdr">
       <button className="iconbtn" data-back="/home" onClick={() => nav('/home')} aria-label={ft('Back')}><Icon name="chevronLeft" /></button>
       <div style={{ flex: 1, margin: '0 12px', minWidth: 0 }}>
         <h1>{ft('Swaps for')} <em>{place ? place.name : ''}</em>.</h1>
-        <div className="sub">{ft('Nothing changes until you approve.')}</div>
+        <div className="sub">{only ? ft('Today\u2019s session. Nothing changes until you approve.') : ft('Nothing changes until you approve.')}</div>
       </div>
     </div>
-    {place ? <SwapReview place={place} onDone={() => nav('/home')} /> : <p className="fk-note">{ft('Add a place first, in Settings.')}</p>}
+    {place ? <SwapReview place={place} onDone={() => nav('/home')} only={only} onWhole={() => setAll(true)} /> : <p className="fk-note">{ft('Add a place first, in Settings.')}</p>}
   </div>
 }

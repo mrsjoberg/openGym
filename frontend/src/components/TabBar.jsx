@@ -9,6 +9,9 @@ import Icon from './Icon.jsx'
 import Elapsed from './Elapsed.jsx'
 import { useConnectionTrouble } from './SyncBanner.jsx'
 import { retapTab } from '../lib/scroll-top.js'
+// FitKat: the fourth tab is Progress, the bone and balance screen; Stats opens from inside it.
+import { overlayOn } from '../fitkat/brand.js'
+import { ft } from '../fitkat/strings.js'
 
 // Module scope, not TabBar's render body. Declared inside it, `Tab` was a new function on every
 // render, so React saw a different component type each time and threw the button away and built a
@@ -98,7 +101,9 @@ export default function TabBar({ onStart, onPick }) {
         {running ? <span className="tab-time"><Elapsed start={S.active.start} pausedAt={S.active.pausedAt} /></span>
           : <span>{S.active ? (cur === 'workout' ? t('Workout') : S.active.editingWorkoutId ? t('Edit workout') : t('Resume')) : t('Start')}</span>}
       </button>
-      <Tab active={on('stats')} icon="chart" label={t('Stats')} onClick={() => switchTab('/stats')} tour="tab-stats" />
+      {overlayOn()
+        ? <Tab active={on('stats') || cur === 'bone'} icon="chart" label={ft('Progress')} onClick={() => switchTab('/bone')} tour="tab-stats" />
+        : <Tab active={on('stats')} icon="chart" label={t('Stats')} onClick={() => switchTab('/stats')} tour="tab-stats" />}
       <Tab active={on('library')} icon="dumbbell" label={t('Exercises')} onClick={() => switchTab('/library')} tour="tab-library" />
     </nav>
   )

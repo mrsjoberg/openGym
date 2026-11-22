@@ -74,7 +74,7 @@ export function fitsPlace(ex, place) {
  * nothing shares the target muscle do exercises that share another muscle stand in, marked
  * `loose`. `exclude` is ids never to offer: what the routine already holds, what she declined.
  */
-export function suggestSwaps(ex, place, { exclude = [], n = 2 } = {}) {
+export function suggestSwaps(ex, place, { exclude = [], n = 2, allow, prefer } = {}) {
   if (!ex || !place) return []
   const { equipment, machines } = kitOfPlace(place)
   const skip = new Set([ex.id, ...exclude])
@@ -87,6 +87,9 @@ export function suggestSwaps(ex, place, { exclude = [], n = 2 } = {}) {
   for (const c of Object.values(EXIDX)) {
     if (!c || skip.has(c.id) || c.bp !== ex.bp || !c.n) continue
     if (!eqAvailable(equipment, c, machines)) continue
+    // `allow` rules a candidate out (it loads one of her limits); `prefer` puts some first (they
+    // leave an area she rests alone). Both come from routineAtPlace.
+    if (allow && !allow(c)) continue
     if (NOT_A_LIFT.test(c.n) || (!hasBall && NEEDS_BALL.test(c.n))) continue
     if (c.cat !== ex.cat && OTHER_KINDS.has(c.cat)) continue
     const sameTarget = !!ex.tg && c.tg === ex.tg
@@ -96,11 +99,11 @@ export function suggestSwaps(ex, place, { exclude = [], n = 2 } = {}) {
     const movement = overlap(words, movementWords(c))
     const score = (sameFamily ? 4 : 0) + 3 * movement + 2 * shared + (c.mg === ex.mg ? 1 : 0)
       - (loaded && c.eq === 'body weight' ? 3 : 0)
-    ;(sameTarget ? strict : loose).push({ ex: c, score, sameMovement: sameFamily || movement >= 0.5, loose: !sameTarget })
+    ;(sameTarget ? strict : loose).push({ ex: c, score, first: prefer && prefer(c) ? 1 : 0, sameMovement: sameFamily || movement >= 0.5, loose: !sameTarget })
   }
   // The id as the last key: the same kit always gives the same suggestions.
-  const ranked = arr => arr.sort((a, b) => b.score - a.score || (a.ex.id < b.ex.id ? -1 : 1))
-  return (strict.length ? ranked(strict) : ranked(loose)).slice(0, n).map(({ score, ...rest }) => rest)
+  const ranked = arr => arr.sort((a, b) => b.first - a.first || b.score - a.score || (a.ex.id < b.ex.id ? -1 : 1))
+  return (strict.length ? ranked(strict) : ranked(loose)).slice(0, n).map(({ score, first, ...rest }) => rest)
 }
 
 /* -------------------------------------------------------------- decisions -- */
@@ -169,6 +172,13 @@ export function routineAtPlace(S, routine, place) {
   // earlier one is being offered right now, is not offered again. The next step is taken.
   const approved = rows.map(cfg => decisionOf(S, place.id, routine.id, cfg.id)?.to || null)
   const offered = []
+  // What stands in for an exercise her kit cannot do must not load one of her limits, as no ladder
+  // step may (rule L7). One that leaves an area she rests alone comes first; one that involves it
+  // is still offered, and says so, since she is the one to decide about those.
+  const limited = limitsOf(S).length > 0
+  const spares = c => !limited || !limitOn(S, c.id)
+  const involves = c => (limited ? restInvolved(S, c.id)?.area || null : null)
+  const noted = c => { const area = involves(c); return area ? { involves: area } : {} }
   return rows.map((cfg, i) => {
     const ex = EXIDX[cfg.id] || null
     const any = decisionOf(S, place.id, routine.id, cfg.id)
@@ -194,11 +204,12 @@ export function routineAtPlace(S, routine, place) {
     }
     if (d?.skip) return { cfg, ex, state: 'skipped', declined }
     // An approval stands only while the place can still do the replacement.
-    if (d?.to && EXIDX[d.to] && fitsPlace(EXIDX[d.to], place)) return { cfg, ex, state: 'approved', to: EXIDX[d.to], declined }
-    const [suggestion] = suggestSwaps(ex, place, { exclude: [...held, ...declined], n: 1 })
+    // And only while it loads none of her limits: one she sets later asks again.
+    if (d?.to && EXIDX[d.to] && fitsPlace(EXIDX[d.to], place) && spares(EXIDX[d.to])) return { cfg, ex, state: 'approved', to: EXIDX[d.to], declined, ...noted(EXIDX[d.to]) }
+    const [suggestion] = suggestSwaps(ex, place, { exclude: [...held, ...declined], n: 1, ...(limited ? { allow: spares, prefer: c => !involves(c) } : {}) })
     if (!suggestion) return { cfg, ex, state: declined.length ? 'ask-skip' : 'no-match', declined }
     if (declined.length >= MAX_SUGGESTIONS) return { cfg, ex, state: 'ask-skip', declined }
-    return { cfg, ex, state: 'pending', suggestion, declined }
+    return { cfg, ex, state: 'pending', suggestion, declined, ...noted(suggestion.ex) }
   })
 }
 

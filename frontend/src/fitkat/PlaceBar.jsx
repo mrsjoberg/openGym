@@ -7,6 +7,7 @@ import { useStore } from '../store/useStore.js'
 import { useLang } from '../lib/i18n.js'
 import { exerciseNameText } from '../lib/format.js'
 import { EXIDX } from '../lib/exercises.js'
+import { effectiveRoutines } from '../lib/history.js'
 import { switchGym } from '../lib/gym-inventory.js'
 import { menuSheet, fitkatCheckinSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
@@ -40,11 +41,13 @@ export default function PlaceBar() {
       onClick: () => {
         if (p.id === place?.id) return
         update(s => { switchGym(s, p.id) })
-        if (undecidedCount(S, S.routines, p) > 0) nav('/swaps')
+        // Only today's session interrupts her; the rest of the plan waits behind the note below.
+        if (undecidedCount(S, effectiveRoutines(S, today), p) > 0) nav('/swaps?scope=today')
       },
     })),
   })
   const left = place ? undecidedCount(S, S.routines, place) : 0
+  const leftToday = place ? undecidedCount(S, effectiveRoutines(S, today), place) : 0
   const swapped = place ? swappedCount(S, S.routines, place) : 0
   return <div className="fk-placebar">
     {places.length > 0 && <button type="button" className="fk-place-pick" onClick={pick} aria-label={ft('Training at {0}, change place', place ? place.name : '')}>
@@ -61,7 +64,10 @@ export default function PlaceBar() {
       <span className="fk-link dim">{ft('Change')}</span>
     </button>}
     {checked && !open && said.length > 0 && <div className="fk-place-note quiet"><span>{ft('Today: {0}.', said.join(', '))}</span></div>}
-    {left > 0 && <button type="button" className="fk-place-note" onClick={() => nav('/swaps')}>
+    {leftToday > 0 ? <button type="button" className="fk-place-note" onClick={() => nav('/swaps?scope=today')}>
+      <span>{ft('{0} exercises in today\u2019s session need a swap for {1}.', leftToday, place.name)}</span>
+      <span className="fk-link">{ft('Review')}</span>
+    </button> : left > 0 && <button type="button" className="fk-place-note" onClick={() => nav('/swaps')}>
       <span>{ft('{0} exercises in your plan need a swap for {1}.', left, place.name)}</span>
       <span className="fk-link">{ft('Review')}</span>
     </button>}
