@@ -355,6 +355,34 @@ export function reviewList(S, routines, place) {
     .filter(g => g.rows.length)
 }
 
+/**
+ * What a row shows, as one string: the exercise, why it is asked about, where it stands and what
+ * is on offer or in its place. Two rows with the same signature ask the same question, or carry
+ * the same answer.
+ */
+export const rowSig = row => [
+  row.cfg.id, row.limit?.area || '', row.involved ? 'involved' : '', row.state, row.rest ? 'rest' : '',
+  row.state === 'pending' ? (row.suggestion.keep ? 'keep' : row.suggestion.ex.id) : '',
+  row.state === 'approved' ? (row.keep ? 'keep' : row.to.id) : '',
+].join('|')
+
+/**
+ * Asked once (owner, 22 Nov): the same exercise in several sessions is one question at a place.
+ * Every row at the place by what it shows, Map(signature -> [{ routine, key }]), so an answer can
+ * go to every session whose row shows the same thing, and an "Undo" to every session that carries
+ * the same answer. A session where the question differs keeps its own: when it already holds the
+ * replacement, say, it is offered the next step, and that answer is its own too.
+ */
+export function questionIndex(S, routines, place) {
+  const index = new Map()
+  for (const g of reviewList(S, routines, place)) for (const row of g.rows) {
+    const sig = rowSig(row)
+    if (!index.has(sig)) index.set(sig, [])
+    index.get(sig).push({ routine: g.routine, key: swapKey(place.id, g.routine.id, row.cfg.id) })
+  }
+  return index
+}
+
 /** Exercises still waiting for her answer at a place. */
 export const undecidedCount = (S, routines, place) =>
   reviewList(S, routines, place).reduce((n, g) => n + g.rows.filter(r => r.state !== 'approved' && r.state !== 'skipped' && r.state !== 'kept').length, 0)
@@ -378,15 +406,23 @@ export const withRestored = (map, keys, now = Date.now()) => keys.reduce((m, k) 
 export const swappedCount = (S, routines, place) =>
   reviewList(S, routines, place).reduce((n, g) => n + g.rows.filter(r => r.state === 'approved').length, 0)
 
-/** S.placeSwaps with every suggestion now on screen approved. Exercises at the skip question stay hers to answer. */
+/**
+ * S.placeSwaps with every suggestion now on screen approved. Exercises at the skip question stay
+ * hers to answer. Each answer also goes to the other sessions of her plan that ask the same
+ * question (questionIndex), so approving one session answers the same exercises elsewhere.
+ */
 export function approveAll(map, S, routines, place, now = Date.now()) {
   let out = isMap(map) ? map : {}
+  const index = questionIndex(S, list(S?.routines), place)
   for (const g of reviewList(S, routines, place)) for (const r of g.rows) {
-    const key = swapKey(place.id, g.routine.id, r.cfg.id)
-    // "Keep or skip?" for what only involves a rested area: approving everything keeps it.
-    if (r.state === 'ask-rest') { out = withKept(out, key, r.limit.area, now); continue }
-    if (r.state !== 'pending') continue
-    out = r.suggestion.keep ? withKept(out, key, r.limit.area, now) : withApproved(out, key, r.suggestion.ex.id, now, r.limit?.area)
+    const own = swapKey(place.id, g.routine.id, r.cfg.id)
+    const keys = [...new Set([own, ...(index.get(rowSig(r)) || []).map(x => x.key)])]
+    for (const key of keys) {
+      // "Keep or skip?" for what only involves a rested area: approving everything keeps it.
+      if (r.state === 'ask-rest') { out = withKept(out, key, r.limit.area, now); continue }
+      if (r.state !== 'pending') continue
+      out = r.suggestion.keep ? withKept(out, key, r.limit.area, now) : withApproved(out, key, r.suggestion.ex.id, now, r.limit?.area)
+    }
   }
   return out
 }

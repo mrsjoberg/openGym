@@ -20,7 +20,7 @@ import { Thumb } from '../components/Media.jsx'
 import { ft } from './strings.js'
 import { placesOf } from './places.js'
 import {
-  currentPlace, reviewList, undecidedCount, approveAll, fitsPlace, swapKey, FORM_CHECK,
+  currentPlace, reviewList, undecidedCount, approveAll, fitsPlace, swapKey, FORM_CHECK, questionIndex, rowSig,
   withApproved, withChosen, withDeclined, withSkipped, withCleared, withKept, sessionCount,
 } from './place-swaps.js'
 import { AREA_LABEL, limitOn, limitsOf } from './limits.js'
@@ -40,8 +40,13 @@ const reason = (row, s) => [
 // rows undecidedCount counts (place-swaps.js).
 const waits = row => row.state !== 'approved' && row.state !== 'skipped' && row.state !== 'kept'
 
-function Row({ S, place, routine, row, write, open, onOpen, taken }) {
-  const key = swapKey(place.id, routine.id, row.cfg.id)
+function Row({ S, place, routine, row, write, open, onOpen, taken, same }) {
+  // Asked once: her answer goes to every session at this place whose row shows the same thing
+  // (place-swaps.js questionIndex), and so does "Undo". `same` always holds this row's own key.
+  const keys = same.length ? same.map(x => x.key) : [swapKey(place.id, routine.id, row.cfg.id)]
+  const each = fn => write(m => keys.reduce((acc, key) => fn(acc, key), m))
+  const also = same.filter(x => x.routine.id !== routine.id).map(x => x.routine.name)
+  const alsoLine = also.length > 0 && <span className="fk-prog-about fk-also">{ft('Also in {0}', also.join(', '))}</span>
   const from = nameOf(row.ex)
   // A row about a limit: its decisions carry the area, and its reasons come from the ladder.
   const lim = row.limit?.area
@@ -62,7 +67,7 @@ function Row({ S, place, routine, row, write, open, onOpen, taken }) {
       if (!fitsPlace(ex, place)) return say(ft('{0} has no kit for that one.', place.name))
       const loads = limitOn(S, ex.id)
       if (loads) return say(ft('That one loads your {0}. Choose another.', ft(AREA_LABEL[loads.area]).toLowerCase()))
-      write(m => (lim ? withChosen(m, key, ex.id, lim) : withApproved(m, key, ex.id)))
+      each((m, key) => (lim ? withChosen(m, key, ex.id, lim) : withApproved(m, key, ex.id)))
       picker.close()
     }, { title: ft('Instead of {0}', from), like: row.cfg.id, allow: limitsOf(S).length ? e => !FORM_CHECK.test(e.n || '') && !limitOn(S, e.id) : e => !FORM_CHECK.test(e.n || '') })
   }
@@ -77,27 +82,28 @@ function Row({ S, place, routine, row, write, open, onOpen, taken }) {
     <div className="fk-swap-card">
       <div className="fk-tag">{limitTag(row.limit)}</div>
       <p className="fk-swap-why">{ft('This involves your {0} without training it. Keep it, or skip it while you rest?', area)}</p>
+      {also.length > 0 && <p className="fk-swap-why fk-also">{ft('Your answer also counts for {0}.', also.join(', '))}</p>}
       <div className="fk-two">
-        <button type="button" className="btn primary" onClick={() => write(m => withKept(m, key, lim))}>{ft('Keep')}</button>
-        <button type="button" className="btn fk-outline" onClick={() => write(m => withSkipped(m, key, undefined, lim))}>{ft('Skip')}</button>
+        <button type="button" className="btn primary" onClick={() => each((m, key) => withKept(m, key, lim))}>{ft('Keep')}</button>
+        <button type="button" className="btn fk-outline" onClick={() => each((m, key) => withSkipped(m, key, undefined, lim))}>{ft('Skip')}</button>
       </div>
     </div>
   </div>
   if (row.state === 'kept') return <div className="fk-swap done">
-    <div className="fk-swap-names"><span className="fk-tag">{limitTag(row.limit)}</span><span className="fk-swap-to">{from}</span><span className="fk-prog-about">{ft('Kept')}</span></div>
-    <button type="button" className="fk-link dim" onClick={() => write(m => withCleared(m, key))}>{ft('Change')}</button>
+    <div className="fk-swap-names"><span className="fk-tag">{limitTag(row.limit)}</span><span className="fk-swap-to">{from}</span><span className="fk-prog-about">{ft('Kept')}</span>{alsoLine}</div>
+    <button type="button" className="fk-link dim" onClick={() => each((m, key) => withCleared(m, key))}>{ft('Change')}</button>
   </div>
   if (row.state === 'approved') return <div className="fk-swap done">
     <div className="fk-swap-names">{lim && <span className="fk-tag">{limitTag(row.limit)}</span>}
       {row.keep ? <><span className="fk-swap-to">{from}</span><span className="fk-prog-about">{ft('Kept, easier')}</span></>
-        : <><span className="fk-swap-from">{from}</span><span className="fk-swap-to">{nameOf(row.to)}</span></>}</div>
+        : <><span className="fk-swap-from">{from}</span><span className="fk-swap-to">{nameOf(row.to)}</span></>}{alsoLine}</div>
     <span className="fk-tag fits"><Icon name="check" /> {ft('Approved')}</span>
-    <button type="button" className="fk-link dim" onClick={() => write(m => withCleared(m, key))}>{ft('Undo')}</button>
+    <button type="button" className="fk-link dim" onClick={() => each((m, key) => withCleared(m, key))}>{ft('Undo')}</button>
   </div>
   if (row.state === 'skipped') return <div className="fk-swap done">
     <div className="fk-swap-names">{lim && <span className="fk-tag">{limitTag(row.limit)}</span>}<span className="fk-swap-to">{from}</span>
-      <span className="fk-prog-about">{row.rest ? ft('Skipped: you were told to rest your {0}', area) : ft('Skipped at {0}', place.name)}</span></div>
-    {!row.rest && <button type="button" className="fk-link dim" onClick={() => write(m => withCleared(m, key))}>{ft('Restore')}</button>}
+      <span className="fk-prog-about">{row.rest ? ft('Skipped: you were told to rest your {0}', area) : ft('Skipped at {0}', place.name)}</span>{!row.rest && alsoLine}</div>
+    {!row.rest && <button type="button" className="fk-link dim" onClick={() => each((m, key) => withCleared(m, key))}>{ft('Restore')}</button>}
   </div>
   if (row.state === 'pending') {
     const s = row.suggestion
@@ -108,9 +114,10 @@ function Row({ S, place, routine, row, write, open, onOpen, taken }) {
       <p className="fk-swap-why">{lim ? ft(s.why) : reason(row, s)}</p>
       {/* A stand-in for the kit that involves an area she rests: said, so that approving it is her call. */}
       {row.involves && <p className="fk-swap-why">{ft('This involves your {0} without training it.', ft(AREA_LABEL[row.involves]).toLowerCase())}</p>}
+      {also.length > 0 && <p className="fk-swap-why fk-also">{ft('Your answer also counts for {0}.', also.join(', '))}</p>}
       <div className="fk-two">
-        <button type="button" className="btn primary" onClick={() => write(m => (s.keep ? withKept(m, key, lim) : withApproved(m, key, s.ex.id, undefined, lim)))}>{ft('Approve')}</button>
-        <button type="button" className="btn fk-outline" onClick={() => write(m => withDeclined(m, key, s.ex.id, undefined, lim))}>{(lim ? row.more : !row.declined.length) ? ft('Suggest another') : ft('Reject')}</button>
+        <button type="button" className="btn primary" onClick={() => each((m, key) => (s.keep ? withKept(m, key, lim) : withApproved(m, key, s.ex.id, undefined, lim)))}>{ft('Approve')}</button>
+        <button type="button" className="btn fk-outline" onClick={() => each((m, key) => withDeclined(m, key, s.ex.id, undefined, lim))}>{(lim ? row.more : !row.declined.length) ? ft('Suggest another') : ft('Reject')}</button>
       </div>
     </div>
   }
@@ -123,14 +130,15 @@ function Row({ S, place, routine, row, write, open, onOpen, taken }) {
     <p className="fk-swap-why">{lim
       ? ft('{0} has nothing gentler left for your {1}. Skipping takes it out of {2} while you train at {3}.', from, area, routine.name, place.name)
       : ft('{0} has no approved replacement. Skipping takes it out of {1} while you train at {2}. It stays in your plan everywhere else.', from, routine.name, place.name)}</p>
+    {also.length > 0 && <p className="fk-swap-why fk-also">{ft('Your answer also counts for {0}.', also.join(', '))}</p>}
     {said.length > 0 && <div className="fk-said-no"><span className="fk-eyebrow">{ft('You said no to')}</span>{said.map(n => <span key={n}>{n}</span>)}</div>}
     <div className="fk-two">
-      <button type="button" className="btn primary" onClick={() => write(m => withSkipped(m, key, undefined, lim))}>{ft('Yes, skip it')}</button>
+      <button type="button" className="btn primary" onClick={() => each((m, key) => withSkipped(m, key, undefined, lim))}>{ft('Yes, skip it')}</button>
       {canChoose ? <button type="button" className="btn fk-outline" onClick={choose}>{ft('No, let me choose')}</button>
-        : <button type="button" className="btn fk-outline" onClick={() => write(m => withKept(m, key, lim))}>{ft('No, keep it')}</button>}
+        : <button type="button" className="btn fk-outline" onClick={() => each((m, key) => withKept(m, key, lim))}>{ft('No, keep it')}</button>}
     </div>
     {/* Go easy: keeping it is still open, also after she turned it down a step earlier. */}
-    {lim && canChoose && <button type="button" className="fk-link" onClick={() => write(m => withKept(m, key, lim))}>{ft('No, keep it')}</button>}
+    {lim && canChoose && <button type="button" className="fk-link" onClick={() => each((m, key) => withKept(m, key, lim))}>{ft('No, keep it')}</button>}
   </div>
 }
 
@@ -185,8 +193,13 @@ export function SwapReview({ place, onDone, only, onWhole, mustFinish = false, d
   const writeFills = fn => update(s => { s.placeFills = fn(s.placeFills) })
   const routines = only ? S.routines.filter(r => only.includes(r.id)) : S.routines
   const groups = reviewList(S, routines, place)
-  const total = groups.reduce((n, g) => n + g.rows.length, 0)
+  // The same question in other sessions of her plan, also ones this review does not list.
+  const index = questionIndex(S, S.routines, place)
   const left = undecidedCount(S, routines, place)
+  // The bar counts questions, not rows: the same exercise asked about in two sessions is one.
+  const shown = groups.flatMap(g => g.rows.map(row => [rowSig(row), waits(row)]))
+  const total = new Set(shown.map(x => x[0])).size
+  const open = new Set(shown.filter(x => x[1]).map(x => x[0])).size
   // Sessions she has dropped for now keep their place in the list, with the way back.
   // The first unanswered row is open; she can open another by tapping it.
   const [picked, setPicked] = useState(null)
@@ -203,15 +216,16 @@ export function SwapReview({ place, onDone, only, onWhole, mustFinish = false, d
     {onDone && <button type="button" className="btn primary" onClick={onDone}>{ft('Done')}</button>}
   </>
   return <>
-    {total > 0 && <div className="fk-progress" role="img" aria-label={ft('{0} of {1} reviewed', total - left, total)}>
-      <div className="fk-progress-bar"><div style={{ width: (100 * (total - left) / total) + '%' }} /></div>
-      <span>{ft('{0} of {1} reviewed', total - left, total)}</span>
+    {total > 0 && <div className="fk-progress" role="img" aria-label={ft('{0} of {1} reviewed', total - open, total)}>
+      <div className="fk-progress-bar"><div style={{ width: (100 * (total - open) / total) + '%' }} /></div>
+      <span>{ft('{0} of {1} reviewed', total - open, total)}</span>
     </div>}
     {blocks.map(g => (g.rows ? <div key={g.routine.id} className="fk-swap-group">
       <h4 className="sec">{g.routine.name}</h4>
       <RestLine S={S} routine={g.routine} place={place} writeFills={writeFills} onDrop={lim => update(s => { dropSession(s, g.routine.id, lim) })} />
       {g.rows.map(row => <Row key={row.cfg.id} S={S} place={place} routine={g.routine} row={row} write={write}
         taken={g.rows.filter(r => r !== row && r.state === 'approved' && r.to && !r.keep).map(r => r.to.id)}
+        same={index.get(rowSig(row)) || []}
         open={idOf(g, row) === openId} onOpen={() => setPicked(idOf(g, row))} />)}
     </div> : <div key={g.routine.id} className="fk-swap-group">
       <h4 className="sec">{g.routine.name}</h4>

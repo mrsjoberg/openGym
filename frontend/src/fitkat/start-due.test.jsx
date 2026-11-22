@@ -17,6 +17,8 @@ const SQUAT = byName('barbell full squat'), PRESS = byName('sled 45° leg press'
 const gym = { id: 'gym', name: 'My gym', equipment: ['barbell', 'dumbbell', 'cable', 'leverage machine', 'sled machine', 'bench', 'adjustable bench'], accV: 3 }
 const legs = { id: 'legs', name: 'Leg Day', ex: [{ id: SQUAT, sets: 4, reps: 8 }, { id: PRESS, sets: 3, reps: 12 }] }
 const push = { id: 'push', name: 'Push Day', ex: [{ id: BENCH, sets: 4, reps: 8 }] }
+// The squat again, in a session of its own: the same question as Leg Day's.
+const spare = { id: 'spare', name: 'Spare', ex: [{ id: SQUAT, sets: 3, reps: 8 }] }
 const clone = o => JSON.parse(JSON.stringify(o))
 const mounted = []
 function renderTop() {
@@ -36,7 +38,7 @@ beforeEach(() => {
   setOverlay(true)
   useUI.setState({ sheets: [], toastMsg: '' })
   // No check-in and no weigh-in, so a start with nothing to ask begins the session at once.
-  useStore.setState({ S: { ...clone(DEF), routines: [legs, push], equipProfiles: [gym], activeEquipId: 'gym', equipFilterOn: true, dailyForm: false, weighIn: false,
+  useStore.setState({ S: { ...clone(DEF), routines: [legs, push, spare], equipProfiles: [gym], activeEquipId: 'gym', equipFilterOn: true, dailyForm: false, weighIn: false,
     bodyLimits: withLimit({}, 'knee', { mode: 'easy' }, '2026-11-22', 1) }, user: null, ready: true })
 })
 afterEach(() => {
@@ -54,6 +56,10 @@ describe('starting a session with open questions', () => {
     const host = renderTop()
     expect(host.textContent).toContain('Before you start.')
     expect(host.textContent).toContain('Leg Day has exercises FitKat would change for you.')
+    // Asked once, and said so: where else the answer counts, and how to change it later.
+    expect(host.querySelector('.fk-swap.open').textContent).toContain('Your answer also counts for Spare.')
+    expect(host.textContent).toContain('To change an answer later:')
+    expect(host.textContent).toContain('Settings, Equipment, Places and equipment')
     expect(host.textContent).toContain('0 of 2 reviewed')
     // No way on yet: neither "Start Leg Day" nor "Finish later".
     expect(button(host, 'Start Leg Day')).toBeUndefined()
@@ -68,6 +74,9 @@ describe('starting a session with open questions', () => {
     act(() => button(host, 'Approve all suggestions').click())
     expect(dueCount(S(), ['legs'])).toBe(0)
     expect(host.textContent).toContain('2 of 2 reviewed')
+    // The squat in Spare is answered with it, and the answered row says so.
+    expect(dueCount(S(), ['spare'])).toBe(0)
+    expect(host.textContent).toContain('Also in Spare')
     act(() => button(host, 'Start Leg Day').click())
     expect(useUI.getState().sheets).toHaveLength(0)
     expect(S().active).toBeTruthy()
@@ -104,5 +113,29 @@ describe('starting a session with nothing to ask', () => {
     act(() => startFlow(['legs']))
     expect(useUI.getState().sheets).toHaveLength(0)
     expect(S().active).toBeTruthy()
+  })
+})
+
+describe('one answer for the same exercise in several sessions', () => {
+  it('a single "Approve" in Leg Day answers Spare too, and "Undo" asks about both again', () => {
+    act(() => startFlow(['legs']))
+    const host = renderTop()
+    expect(dueCount(S(), ['spare'])).toBe(1)
+    act(() => button(host.querySelector('.fk-swap.open'), 'Approve').click())
+    expect(dueCount(S(), ['spare'])).toBe(0)
+    expect(dueCount(S(), ['legs'])).toBe(1)
+    act(() => button(host, 'Undo').click())
+    expect(dueCount(S(), ['spare'])).toBe(1)
+    expect(dueCount(S(), ['legs'])).toBe(2)
+  })
+  it('Spare then starts without being asked', () => {
+    act(() => startFlow(['legs']))
+    const host = renderTop()
+    act(() => button(host, 'Approve all suggestions').click())
+    act(() => useUI.getState().closeAll())
+    act(() => startFlow(['spare']))
+    expect(useUI.getState().sheets).toHaveLength(0)
+    expect(S().active).toBeTruthy()
+    expect(S().active.entries.some(e => e.limit === 'knee' && e.swappedFrom === SQUAT)).toBe(true)
   })
 })

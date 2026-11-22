@@ -14,6 +14,7 @@ import { SwapReview } from './ReviewSwaps.jsx'
 import { LimitsStep } from './Limits.jsx'
 import { womenDefaults } from './profile.js'
 import { dueBySession, dueTotal } from './due.js'
+import { ChangeLater } from './DueReview.jsx'
 
 const STEPS = 5
 
@@ -109,7 +110,7 @@ export default function Onboarding() {
       <div className="fk-onb-head">
         <div className="fk-eyebrow">{ft('Step {0} of {1}', 5, STEPS)} · {places[0]?.name}</div>
         <h1>{ft('Review your')} <em>{ft('plan')}</em>.</h1>
-        <p>{ft('To decide: {0} in {1}.', count(total), sessions.length === 1 ? ft('1 session') : ft('{0} sessions', sessions.length))} {ft('Each is a gentler version for a limit, or a swap for equipment {0} does not have. Nothing changes until you approve.', places[0].name)}</p>
+        <p>{ft('To decide: {0} in {1}.', count(total), sessions.length === 1 ? ft('1 session') : ft('{0} sessions', sessions.length))} {ft('Each is a gentler version for a limit, or a swap for equipment {0} does not have. Each is asked once, and nothing changes until you approve.', places[0].name)}</p>
       </div>
       <div className="fk-ci-opts" role="radiogroup" aria-label={ft('Review your') + ' ' + ft('plan')}>
         {options.map(o => <button key={o.id} type="button" role="radio" aria-checked={how === o.id} className={'fk-ci-opt' + (how === o.id ? ' on' : '')} onClick={() => setHow(o.id)}>
@@ -127,6 +128,7 @@ export default function Onboarding() {
           </li>)}
         </ul>
       </div>
+      <ChangeLater />
       <div className="fk-onb-foot">
         <button type="button" className="btn primary" onClick={how === 'due' ? finish : () => setStep('review-all')}>
           {how === 'due' ? ft('Done') : total === 1 ? ft('Review 1 now') : ft('Review {0} now', total)}</button>

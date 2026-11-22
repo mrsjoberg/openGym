@@ -9,7 +9,7 @@ import { mergeStates } from '../lib/sync-merge.js'
 import {
   suggestSwaps, fitsPlace, routineAtPlace, routineForPlace, routineHere, fitOf, swapKey,
   withApproved, withChosen, withDeclined, withSkipped, withCleared, decisionOf, readDecision,
-  reviewList, undecidedCount, swappedCount, approveAll, FORM_CHECK,
+  reviewList, undecidedCount, swappedCount, approveAll, FORM_CHECK, questionIndex, rowSig,
 } from './place-swaps.js'
 
 const ACC = { accV: 3 }
@@ -170,6 +170,65 @@ describe('no replacement twice in one session', () => {
     expect(second.state).toBe('pending')
     expect(second.suggestion.ex.id).not.toBe(to)
     expect(ran({ placeSwaps: m }, two, home).filter(id => id === to)).toHaveLength(1)
+  })
+})
+
+describe('asked once: the same exercise in several sessions', () => {
+  // The hip thrust is in both; Lower B also holds what the hip thrust is first offered at home.
+  const first = suggestSwaps(EXIDX['1060'], home, { exclude: ['1060'], n: 1 })[0].ex.id
+  const a = { id: 'a', name: 'Lower A', ex: [{ id: '1060', sets: 4, reps: 10 }, { id: '0605', sets: 3, reps: 15 }] }
+  const b = { id: 'b', name: 'Lower B', ex: [{ id: '1060', sets: 3, reps: 12 }] }
+  const c = { id: 'c', name: 'Lower C', ex: [{ id: '1060', sets: 3, reps: 12 }, { id: first, sets: 3, reps: 12 }] }
+  const S = { routines: [a, b, c] }
+  const keysFor = (s, routine) => {
+    const row = routineAtPlace(s, routine, home).find(r => r.cfg.id === '1060')
+    return (questionIndex(s, s.routines, home).get(rowSig(row)) || []).map(x => x.key)
+  }
+  const answer = (s, routine, fn) => ({ ...s, placeSwaps: keysFor(s, routine).reduce((m, k) => fn(m, k), s.placeSwaps) })
+  const at = (s, routine) => routineAtPlace(s, routine, home).find(r => r.cfg.id === '1060')
+
+  it('is one question where the rows show the same thing, and its own where they differ', () => {
+    expect(at(S, a).suggestion.ex.id).toBe(first)
+    expect(at(S, b).suggestion.ex.id).toBe(first)
+    // Lower C already holds that exercise, so it is offered the next one: a different question.
+    expect(at(S, c).suggestion.ex.id).not.toBe(first)
+    expect(keysFor(S, a)).toEqual([swapKey('home', 'a', '1060'), swapKey('home', 'b', '1060')])
+    expect(keysFor(S, c)).toEqual([swapKey('home', 'c', '1060')])
+    // A row that fits, and one of another exercise, are nobody's question.
+    expect([...questionIndex(S, S.routines, home).keys()].every(sig => !sig.startsWith('2290|'))).toBe(true)
+  })
+  it('gives her answer to every session that asks the same thing, and leaves the others alone', () => {
+    const s = answer(S, a, (m, k) => withApproved(m, k, first, 1))
+    expect(at(s, a)).toMatchObject({ state: 'approved', to: { id: first } })
+    expect(at(s, b)).toMatchObject({ state: 'approved', to: { id: first } })
+    expect(at(s, c).state).toBe('pending')
+    // Answering Lower C later does not come back and change the other two.
+    const s2 = answer(s, c, (m, k) => withApproved(m, k, at(s, c).suggestion.ex.id, 2))
+    expect(at(s2, a).to.id).toBe(first)
+    expect(at(s2, b).to.id).toBe(first)
+    expect(at(s2, c)).toMatchObject({ state: 'approved' })
+    expect(at(s2, c).to.id).not.toBe(first)
+  })
+  it('carries "Suggest another", the skip and "Undo" the same way', () => {
+    let s = answer(S, b, (m, k) => withDeclined(m, k, first, 1))
+    expect(at(s, a).suggestion.ex.id).toBe(at(s, b).suggestion.ex.id)
+    expect(at(s, a).suggestion.ex.id).not.toBe(first)
+    s = answer(s, a, (m, k) => withSkipped(m, k, 2))
+    expect([at(s, a).state, at(s, b).state]).toEqual(['skipped', 'skipped'])
+    // "Restore" on either one asks about both again.
+    s = answer(s, b, (m, k) => withCleared(m, k, 3))
+    expect([at(s, a).state, at(s, b).state]).toEqual(['pending', 'pending'])
+  })
+  it('"Approve all" for one session answers the same exercises in the others', () => {
+    const s = { ...S, placeSwaps: approveAll({}, S, [a], home, 1) }
+    expect(at(s, b)).toMatchObject({ state: 'approved', to: { id: first } })
+    expect(at(s, c).state).toBe('pending')
+    expect(undecidedCount(s, [a, b], home)).toBe(0)
+  })
+  it('keeps answers apart from place to place', () => {
+    const s = answer(S, a, (m, k) => withApproved(m, k, first, 1))
+    expect(decisionOf(s, 'travel', 'a', '1060')).toBe(null)
+    expect(routineAtPlace(s, a, travel).find(r => r.cfg.id === '1060').state).not.toBe('approved')
   })
 })
 

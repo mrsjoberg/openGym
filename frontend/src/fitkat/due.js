@@ -8,7 +8,7 @@
 // whichever she chose.
 import { effectiveRoutines } from '../lib/history.js'
 import { isoOf, todayISO } from '../lib/format.js'
-import { currentPlace, reviewList, undecidedCount } from './place-swaps.js'
+import { currentPlace, reviewList, rowSig, undecidedCount } from './place-swaps.js'
 
 const list = v => (Array.isArray(v) ? v : [])
 // The rows she has not answered: the same ones undecidedCount counts (place-swaps.js).
@@ -25,13 +25,15 @@ export function dueCount(S, routineIds, place = currentPlace(S)) {
  * What waits at a place, session by session, in the order she will meet them:
  *   [{ routine, count, iso, weekday }]
  * `iso` is the first day from `today` on that the session is planned for, within `days`; null (and
- * a null weekday) for a session on no day, which comes last.
+ * a null weekday) for a session on no day, which comes last. A question is counted once, in the
+ * first session that asks it: her answer there goes to the others (place-swaps.js questionIndex),
+ * so a session whose questions were all met earlier is not listed.
  */
 export function dueBySession(S, place, today = todayISO(), days = 14) {
   if (!place) return []
   const out = reviewList(S, list(S?.routines), place)
-    .map(g => ({ routine: g.routine, count: g.rows.filter(open).length, iso: null, weekday: null }))
-    .filter(g => g.count > 0)
+    .map(g => ({ routine: g.routine, sigs: g.rows.filter(open).map(rowSig), iso: null, weekday: null }))
+    .filter(g => g.sigs.length > 0)
   for (let i = 0; i < days && out.some(g => !g.iso); i++) {
     const d = new Date(today + 'T12:00:00')
     d.setDate(d.getDate() + i)
@@ -40,7 +42,13 @@ export function dueBySession(S, place, today = todayISO(), days = 14) {
     for (const g of out) if (!g.iso && ids.includes(g.routine.id)) { g.iso = iso; g.weekday = d.getDay() }
   }
   // Array.prototype.sort is stable: sessions on the same day, or on none, keep the plan's order.
-  return out.sort((a, b) => (a.iso || '9999') < (b.iso || '9999') ? -1 : (a.iso || '9999') > (b.iso || '9999') ? 1 : 0)
+  out.sort((a, b) => (a.iso || '9999') < (b.iso || '9999') ? -1 : (a.iso || '9999') > (b.iso || '9999') ? 1 : 0)
+  const met = new Set()
+  return out.map(({ sigs, ...g }) => {
+    const fresh = sigs.filter(sig => !met.has(sig))
+    for (const sig of fresh) met.add(sig)
+    return { ...g, count: fresh.length }
+  }).filter(g => g.count > 0)
 }
 
 /** All the questions in that list. */

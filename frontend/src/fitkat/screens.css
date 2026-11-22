@@ -208,3 +208,7 @@
 .fk-due-count{color:var(--label-2);font-size:.8125rem;white-space:nowrap}
 /* The same review in a sheet, before a session starts (DueReview.jsx). */
 .fk-due .fk-onb-foot{margin-top:8px}
+/* Asked once: where else an answer counts, and how it is changed later. */
+.fk-also{color:var(--label-2);font-size:.8125rem}
+.fk-change-later{margin:8px 0 0;padding:12px 16px;background:var(--sage);color:var(--label);font-size:.8125rem;line-height:1.5}
+.fk-change-later strong{font-weight:600}
