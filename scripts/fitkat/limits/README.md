@@ -28,9 +28,9 @@ the media.
   readers of the same 738 exercises agreed on 94% of exercise-and-area judgements and listed exactly the
   same areas for 63% of exercises, so it is an opinion, not a measurement.
 - `fill-pool.json`: the ids of about 300 well-known exercises that "Build your own" suggests from.
-  Five were taken out on 22 Nov because their written steps contradict their name (cable bench press
-  0151, cable incline bench press 0169, dumbbell hammer curl 0313, deep push up 1274, Korean dips 3288);
-  they can go back once the text is corrected.
+  Five of them (cable bench press 0151, cable incline bench press 0169, dumbbell hammer curl 0313, deep
+  push up 1274, Korean dips 3288) have written steps in the catalogue that contradict their name. FitKat
+  shows its own corrected steps for those (`frontend/src/fitkat/steps.js`), so they are in the pool.
 - `export.py`: writes the data file.
 
 What this is not: the tags behind the ladders are rule-derived. The readings were made by AI reviewers,

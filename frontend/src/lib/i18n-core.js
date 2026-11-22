@@ -17,6 +17,7 @@ import { INSTR_LANGS, EXERCISE_NAME_LANGS } from './catalogue-langs.js'
 import { shownNameOf } from './exercise-aliases.js'
 // FitKat: the app's own name in every string, whatever the language (fitkat/brand.js).
 import { branded } from '../fitkat/brand.js'
+import { correctedSteps } from '../fitkat/steps.js'
 export { INSTR_LANGS, EXERCISE_NAME_LANGS }
 // Languages rendered right-to-left; i18n.js setLang applies the direction from this.
 export const RTL_LANGS = new Set(['ar', 'fa'])
@@ -180,6 +181,8 @@ export function _detailsFailed(retryMs = 20000) {
 // Instructions for an exercise in the current language (English steps as fallback). `st` on the
 // exercise itself still wins over nothing: a custom exercise or an older plan file carries its own.
 export const instrFor = ex => {
+  const fixed = correctedSteps(ex.id)   // FitKat: steps that contradicted the exercise
+  if (fixed) return fixed
   const own = instr && instr[ex.id]
   if (own) return own
   if (!enInstr) askDetails()
@@ -187,7 +190,7 @@ export const instrFor = ex => {
 }
 
 // Whether the steps instrFor shows are in the current language rather than the English fallback.
-export const instrTranslated = ex => !!(instr && ex && instr[ex.id])
+export const instrTranslated = ex => !!(instr && ex && instr[ex.id]) && !correctedSteps(ex.id)
 
 // A sentence or two on what the exercise is, in the current language when someone has written
 // it, otherwise in English. Empty for exercises nobody has described yet and for custom ones.
