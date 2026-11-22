@@ -70,7 +70,10 @@ describe('a kit swap under a limit', () => {
         if (touches) {
           noted++
           // Nothing the kit could do instead leaves the area alone: otherwise that would have come first.
-          const held = routine.ex.map(e => e.id)
+          // What an earlier exercise of the session is being offered is not free to offer again.
+          const all = routineAtPlace(S, routine, home)
+          const before = all.slice(0, all.findIndex(r => r.cfg.id === row.cfg.id)).filter(r => r.state === 'pending' && !r.suggestion.keep).map(r => r.suggestion.ex.id)
+          const held = [...routine.ex.map(e => e.id), ...before]
           const clear = suggestSwaps(row.ex, home, { exclude: held, n: 1, allow: c => !limitOn(S, c.id) && !restInvolved(S, c.id) })
           const same = suggestSwaps(row.ex, home, { exclude: held, n: 1, allow: c => !limitOn(S, c.id) })[0]
           if (clear.length) expect(clear[0].loose && !same.loose).toBe(true)

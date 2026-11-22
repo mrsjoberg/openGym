@@ -2,6 +2,9 @@
 import { describe, it, expect } from 'vitest'
 import { EXIDX } from '../lib/exercises.js'
 import { buildSessionEntries } from '../lib/session-start.js'
+import { STARTER_PLANS } from '../../../api/coach/core/starter-plans.js'
+import { PRESETS } from './places.js'
+import { withLimit } from './limits.js'
 import { mergeStates } from '../lib/sync-merge.js'
 import {
   suggestSwaps, fitsPlace, routineAtPlace, routineForPlace, routineHere, fitOf, swapKey,
@@ -127,6 +130,46 @@ describe('a routine at a place', () => {
     const S = { placeSwaps: withCleared(withSkipped(withDeclined({}, key, '4742', 1), key, 2), key, 3) }
     expect(readDecision(S.placeSwaps[key])).toBe(null)
     expect(routineAtPlace(S, lowerA, home)[0].state).toBe('pending')
+  })
+})
+
+describe('no replacement twice in one session', () => {
+  const basics = { id: 'home', name: 'Home', equipment: PRESETS.home(), accV: 3 }
+  const all = Object.values(STARTER_PLANS).flatMap(p => p.routines.map(([id, rname, , rows]) => ({ id, name: rname, ex: rows.map(([x, sets, n, kind]) => (kind === 'time' ? { id: x, sets, mode: 'time', sec: n } : { id: x, sets, reps: n })) })))
+  const states = [{}, ...['shoulder', 'back', 'hip'].map(a => ({ bodyLimits: withLimit({}, a, { mode: 'avoid', rest: true }, '2026-11-22', 1) }))]
+  const ran = (S, routine, place) => routineForPlace(S, routine, place).ex.map(e => e.id)
+
+  it('offers every exercise of a session something different, in every built-in programme, with and without a rested area', () => {
+    for (const S of states) for (const routine of all) for (const place of [basics, travel]) {
+      const offered = routineAtPlace(S, routine, place).filter(r => r.state === 'pending' && !r.suggestion.keep).map(r => r.suggestion.ex.id)
+      expect(new Set(offered).size, routine.name + ' at ' + place.name).toBe(offered.length)
+      // And "Approve all" leaves no exercise in the session twice.
+      const run = ran({ ...S, placeSwaps: approveAll({}, S, [routine], place, 1) }, routine, place)
+      expect(new Set(run).size, routine.name + ' at ' + place.name).toBe(run.length)
+    }
+  }, 60000)
+  it('takes the next suggestion for the second of two alike, and again once the first is approved', () => {
+    // With a rested shoulder at home the leg press and the leg extension both came out as the band leg extension.
+    const S = states[1]
+    const legs = all.find(r => { const o = routineAtPlace(S, r, basics); return o.some(x => x.cfg.id === '0739') && o.some(x => x.cfg.id === '0585') })
+    const pair = s => routineAtPlace(s, legs, basics).filter(r => r.cfg.id === '0739' || r.cfg.id === '0585')
+    const [a, b] = pair(S)
+    expect(a.state).toBe('pending'); expect(b.state).toBe('pending')
+    expect(b.suggestion.ex.id).not.toBe(a.suggestion.ex.id)
+    const approved = { ...S, placeSwaps: withApproved({}, swapKey('home', legs.id, a.cfg.id), a.suggestion.ex.id, 1) }
+    expect(pair(approved)[0].state).toBe('approved')
+    expect(pair(approved)[1].suggestion.ex.id).not.toBe(a.suggestion.ex.id)
+  })
+  it('asks the later one again when both were approved onto the same exercise before this rule', () => {
+    const two = { id: 'r9', name: 'Lower', ex: [{ id: '1060', sets: 3, reps: 10 }, { id: '1409', sets: 3, reps: 10 }] }
+    const to = suggestSwaps(EXIDX['1060'], home, { exclude: ['1060', '1409'], n: 1 })[0].ex.id
+    let m = withApproved({}, swapKey('home', 'r9', '1060'), to, 1)
+    m = withApproved(m, swapKey('home', 'r9', '1409'), to, 2)
+    const [first, second] = routineAtPlace({ placeSwaps: m }, two, home)
+    expect(first).toMatchObject({ state: 'approved', to: { id: to } })
+    expect(second.state).toBe('pending')
+    expect(second.suggestion.ex.id).not.toBe(to)
+    expect(ran({ placeSwaps: m }, two, home).filter(id => id === to)).toHaveLength(1)
   })
 })
 

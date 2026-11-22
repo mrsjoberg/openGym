@@ -178,9 +178,13 @@ export function routineAtPlace(S, routine, place) {
   if (!place) return rows.map(cfg => ({ cfg, ex: EXIDX[cfg.id] || null, state: 'fits', declined: [] }))
   const held = rows.map(cfg => cfg.id)
   // No replacement twice in one session: what another exercise here already runs as, and what an
-  // earlier one is being offered right now, is not offered again. The next step is taken.
+  // earlier one is being offered right now, is not offered again. The next step, or the next
+  // suggestion, is taken. This holds for kit swaps as for limits (owner, 22 Nov).
   const approved = rows.map(cfg => decisionOf(S, place.id, routine.id, cfg.id)?.to || null)
   const offered = []
+  // What an earlier row of this session already runs as. Two kit swaps approved onto the same
+  // exercise (possible before this rule): the first keeps it, the later one is asked again.
+  const runs = new Set()
   // What stands in for an exercise her kit cannot do must not load one of her limits, as no ladder
   // step may (rule L7). One that leaves an area she rests alone comes first; one that involves it
   // is still offered, and says so, since she is the one to decide about those.
@@ -197,6 +201,7 @@ export function routineAtPlace(S, routine, place) {
       const taken = [...held, ...approved.filter((id, j) => id && j !== i), ...offered]
       const row = limitRow(S, cfg, ex, place, taken, limit, any && any.lim === limit.area ? any : null)
       if (row.state === 'pending' && !row.suggestion.keep) offered.push(row.suggestion.ex.id)
+      if (row.state === 'approved' && !row.keep) runs.add(row.to.id)
       return row
     }
     const d = any && !any.lim ? any : null
@@ -214,10 +219,15 @@ export function routineAtPlace(S, routine, place) {
     if (d?.skip) return { cfg, ex, state: 'skipped', declined }
     // An approval stands only while the place can still do the replacement.
     // And only while it loads none of her limits: one she sets later asks again.
-    if (d?.to && EXIDX[d.to] && fitsPlace(EXIDX[d.to], place) && spares(EXIDX[d.to])) return { cfg, ex, state: 'approved', to: EXIDX[d.to], declined, ...noted(EXIDX[d.to]) }
-    const [suggestion] = suggestSwaps(ex, place, { exclude: [...held, ...declined], n: 1, ...(limited ? { allow: spares, prefer: c => !involves(c) } : {}) })
+    if (d?.to && EXIDX[d.to] && fitsPlace(EXIDX[d.to], place) && spares(EXIDX[d.to]) && !runs.has(d.to)) {
+      runs.add(d.to)
+      return { cfg, ex, state: 'approved', to: EXIDX[d.to], declined, ...noted(EXIDX[d.to]) }
+    }
+    const taken = [...approved.filter((id, j) => id && j !== i), ...offered]
+    const [suggestion] = suggestSwaps(ex, place, { exclude: [...held, ...declined, ...taken], n: 1, ...(limited ? { allow: spares, prefer: c => !involves(c) } : {}) })
     if (!suggestion) return { cfg, ex, state: declined.length ? 'ask-skip' : 'no-match', declined }
     if (declined.length >= MAX_SUGGESTIONS) return { cfg, ex, state: 'ask-skip', declined }
+    offered.push(suggestion.ex.id)
     return { cfg, ex, state: 'pending', suggestion, declined, ...noted(suggestion.ex) }
   })
 }
