@@ -53,6 +53,7 @@ import { useTour } from './lib/tour.js'
 import { useTourOffer } from './lib/tour-offer.js'
 import { exitWorkoutEdit, startFlow, beginWorkout, bwSheet, finishWorkoutNow, confirmSheet } from './sheets.jsx'
 import { BrandMark } from './components/BrandLogo.jsx'
+import { Wordmark } from './fitkat/Wordmark.jsx'
 import TabBar from './components/TabBar.jsx'
 import { startOrPreview, startPickerSheet } from './components/StartSheets.jsx'
 import ScrollTopButton from './components/ScrollTopButton.jsx'
@@ -399,7 +400,7 @@ function Shell() {
   if (!ready && !authed) return (
     <div id="app">
       <div style={{ paddingTop: '44vh', display: 'flex', justifyContent: 'center' }}>
-        <BrandMark height={28} />
+        {overlayOn() ? <Wordmark size={34} /> : <BrandMark height={28} />}
       </div>
     </div>
   )

@@ -39,6 +39,7 @@ import { ChallengesCard } from '../components/Challenges.jsx'
 import { isOn } from '../lib/modules.js'
 import { appName, overlayOn } from '../fitkat/brand.js'
 import PlaceBar from '../fitkat/PlaceBar.jsx'
+import { Wordmark } from '../fitkat/Wordmark.jsx'
 import { BoneLine } from '../fitkat/BoneBalance.jsx'
 import FitkatRecovery from '../fitkat/SoreHint.jsx'
 
@@ -141,7 +142,7 @@ export default function Home() {
   return <div className="narrow">
     <div className="hdr">
       <SeasonDeco spot="header-bats" />
-      <div><h1>{user ? t('Hi {0}', user.name) : appName()}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
+      <div><h1>{user ? t('Hi {0}', user.name) : overlayOn() ? <Wordmark /> : appName()}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
       <button className="iconbtn" data-tour="settings-gear" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="gear" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>
     </div>
     <TrainerNotice />

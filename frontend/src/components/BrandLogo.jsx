@@ -2,6 +2,9 @@
 // corners, brand green) and the lockup (mark, then "open" plus "Gym" in brand green). Brand colours,
 // not the accent: the accent is the user's, the logo is not. Never mirrored in RTL.
 
+import { overlayOn } from '../fitkat/brand.js'
+import { Wordmark } from '../fitkat/Wordmark.jsx'
+
 const RECTS = [[80, 242, 352, 28], [80, 199, 36, 114], [131, 169, 47, 174], [334, 169, 47, 174], [396, 199, 36, 114]]
 
 /** The mark alone, `height` px high (width follows, 352:174). `color` only for a one-colour use. */
@@ -19,6 +22,7 @@ export function BrandMark({ height = 24, color = '#a3e635', className, style }) 
  * 0.36× above the baseline (opengym-logo-dark.svg). "open" follows the theme (index.css .brand-lockup).
  */
 export default function BrandLogo({ size = 34, as: Tag = 'span', className = '', style }) {
+  if (overlayOn()) return <Wordmark as={Tag} size={size} tone="forest" className={className} style={style} />
   return (
     <Tag className={('brand-lockup ' + className).trim()} dir="ltr" style={{ fontSize: size, ...style }}>
       <svg className="brand-lockup-mark" viewBox="80 169 352 174" aria-hidden="true" focusable="false">

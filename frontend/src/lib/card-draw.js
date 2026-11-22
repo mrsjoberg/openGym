@@ -5,6 +5,8 @@
 // on a card (the licence keeps those inside the app, NOTICE.md).
 
 import { inkIn } from './accent.js'
+import { overlayOn } from '../fitkat/brand.js'
+import { drawWordmark } from '../fitkat/brand-draw.js'
 
 // 9:16 for Stories and Reels, 1:1 for a feed or a chat.
 export const FORMATS = { story: { width: 1080, height: 1920 }, square: { width: 1080, height: 1080 } }
@@ -113,6 +115,7 @@ export function brandNeedsBadge(bg) {
 // own: a photo behind it, or a see-through PNG laid over one later (TestFlight 11-08: the logo
 // on a photo read as see-through). The badge is solid BRAND.ink, never a tint.
 export function drawBrand(ctx, { x, y, width, colors, family, size = 40, badge: forceBadge = false }) {
+  if (overlayOn()) return drawWordmark(ctx, { x, y, size })
   // Proportions of assets/logo/opengym-logo-dark.svg: the mark 1.07× the type, a gap of 0.2×.
   const markH = size * 1.07
   const gap = size * 0.2
