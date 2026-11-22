@@ -4,6 +4,8 @@
 // after this workout was saved, so the summary cannot promise a number the next session won't.
 import { isWarmupRow, isFailureSet } from './workout-model.js'
 import { buildPlannedEntry } from './session-start.js'
+// FitKat: "next time" is read from the routine as her place and limits run it (fitkat/place-swaps.js).
+import { routineHere } from '../fitkat/place-swaps.js'
 import { workoutAt, modeOf } from './history.js'
 import { setBandsOf } from './bands.js'
 
@@ -70,7 +72,7 @@ export function finishCompare(st, w) {
     let next = null, nextHold = null
     const routine = entry.rid ? (st.routines || []).find(r => r.id === entry.rid) : null
     const cfg = routine && !routine.excludeFromProgression && !entry.noProg && !w.noProg
-      ? (routine.ex || []).find(c => c?.id === entry.id) : null
+      ? ((routineHere(st, routine) || routine).ex || []).find(c => c?.id === entry.id) : null
     if (cfg && modeOf(cfg) === 'time') {
       // What Start will put in the first hold's row, and whether the plan moved it.
       try {

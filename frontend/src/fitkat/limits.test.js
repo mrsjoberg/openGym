@@ -178,7 +178,8 @@ describe('a routine under a limit', () => {
     const s = { ...S(lim('knee', 'easy')), placeSwaps: withApproved({}, key, BOX, 1, 'knee') }
     expect(at(s)).toMatchObject({ state: 'approved' })
     const run = routineForPlace(s, { ...routine, ex: [{ id: SQUAT, sets: 3, reps: 8, rest: 120, weight: 60 }] }, place)
-    expect(run.ex[0]).toEqual({ id: BOX, swappedFrom: SQUAT, limit: 'knee', sets: 3, reps: 8, rest: 120 })
+    // The mobility block for a Go easy area comes first (mobility.js); the exercise follows it.
+    expect(run.ex.find(e => !e.mobility)).toEqual({ id: BOX, swappedFrom: SQUAT, limit: 'knee', sets: 3, reps: 8, rest: 120 })
   })
   it('runs a hold in seconds, with the sets but not the reps of the lift it stands in for', () => {
     const s = { ...S(lim('knee', 'avoid')), placeSwaps: withApproved({}, key, THIGH_HOLD, 1, 'knee') }
@@ -188,7 +189,7 @@ describe('a routine under a limit', () => {
   it('keeps the exercise, marked, when she chooses "Keep it"', () => {
     const s = { ...S(lim('knee', 'easy')), placeSwaps: withKept({}, key, 'knee', 1) }
     expect(at(s)).toMatchObject({ state: 'approved', keep: true })
-    expect(routineForPlace(s, routine, place).ex[0]).toEqual({ id: SQUAT, sets: 3, reps: 8, rest: 120, limit: 'knee' })
+    expect(routineForPlace(s, routine, place).ex.find(e => !e.mobility)).toEqual({ id: SQUAT, sets: 3, reps: 8, rest: 120, limit: 'knee' })
   })
   it('skips every flagged exercise when she was told to rest it, with nothing to decide', () => {
     const s = S(lim('knee', 'avoid', true))

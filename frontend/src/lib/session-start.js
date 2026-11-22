@@ -19,6 +19,8 @@ import { warmupSource, warmupModeOf, withWarmupBlock } from './warmup-ramp.js'
 import { withSessionTarget } from './session-targets.js'
 // FitKat: approved replacements and skips for the place the session runs at (fitkat/place-swaps.js).
 import { routineHere } from '../fitkat/place-swaps.js'
+// FitKat: slower progress, and a lighter start, for an exercise that carries a limit (fitkat/go-easy.js).
+import { easyPlan } from '../fitkat/go-easy.js'
 
 /**
  * Where a planned session's reps come from (Settings → During a workout). 'plan', the default:
@@ -109,6 +111,9 @@ function planEntry(stored, cfg, routine, { noProg = false } = {}) {
   const st = historyAs(stored, cfg.id, meaning)
   // `plan` is kept on the entry purely so the workout can explain the number it chose.
   let plan = noProg ? { policy: 'off', kind: 'off' } : nextPrescription(st, cfg, routine)
+  // FitKat: under a limit it goes up only after two clean sessions in a row, and an exercise she
+  // kept easier opens about 10% lighter the first time.
+  if (!noProg && cfg.limit) plan = easyPlan(st, cfg, routine, plan)
   // The warm-up ramp and the prescription snap to the exercise's own increment (1.25 kg
   // plates exist), not the unit default; a timed exercise's `inc` is seconds, so it keeps the
   // default for its optional load.
@@ -310,7 +315,7 @@ export function buildSessionEntries(st, r) {
   const entries = (here ? here.ex : []).map(cfg => {
     const { deload, ...built } = buildPlannedEntry(st, cfg, r, { noProg })
     // A programme's deload week stays out of progression, as a deload routine does.
-    return { id: cfg.id, sg: cfg.sg, ...built, ...(cfg.swappedFrom ? { swappedFrom: cfg.swappedFrom } : {}), ...(cfg.limit ? { limit: cfg.limit } : {}), ...(noProg || deload ? { noProg: true } : {}) }
+    return { id: cfg.id, sg: cfg.sg, ...built, ...(cfg.swappedFrom ? { swappedFrom: cfg.swappedFrom } : {}), ...(cfg.limit ? { limit: cfg.limit } : {}), ...(cfg.mobility ? { mobility: cfg.mobility } : {}), ...(noProg || deload ? { noProg: true } : {}) }
   })
   // The rows a coach or planner set for this routine on this day (#972, lib/session-targets.js),
   // in place of the prescription's; the routine and its targets stay what they built.

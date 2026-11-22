@@ -941,7 +941,7 @@ function ExerciseBlock({ entryIdx, compact, listed, dense, editing, onToggle, on
   return <>
     {/* Animations set to Small: a thumbnail beside the name instead of a strip above it, so the
         first set is on screen without scrolling; a tap brings the full animation back. */}
-    {(entry.swappedFrom || entry.eased || entry.limit) && <SwappedNote entry={entry} />}
+    {(entry.swappedFrom || entry.eased || entry.limit || entry.mobility) && <SwappedNote entry={entry} />}
     {!dense && !thumb && <Media ex={ex} notes={entry.target?.notes} key={entry.id} compact={compact} minimizable sayAs={exSay} />}
     <div className="row between exhd" style={{ marginBottom: 8 }}>
       {thumb && <WorkoutThumb ex={ex} dense={dense} sayAs={exSay} onExpand={dense ? () => exerciseDetailSheet(ex) : () => update(s => { s.gifSize = 'full' })} />}

@@ -30,6 +30,7 @@ import { currentGymId } from '../lib/gym-split.js'
 import { limitOn, limitOffers, limitsOf, withLimit, restInvolved } from './limits.js'
 import { isDropped } from './drops.js'
 import { fillEntries } from './fills.js'
+import { mobilityEntries } from './mobility.js'
 
 const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v)
 const list = v => (Array.isArray(v) ? v : [])
@@ -244,7 +245,8 @@ export function routineForPlace(S, routine, place) {
   if (!routine || !place || (!isMap(S?.placeSwaps) && !limitsOf(S).length)) return routine
   let changed = false
   const ex = []
-  for (const row of routineAtPlace(S, routine, place)) {
+  const rows = routineAtPlace(S, routine, place)
+  for (const row of rows) {
     if (row.state === 'skipped') { changed = true; continue }
     if (row.state !== 'approved') { ex.push(row.cfg); continue }
     changed = true
@@ -258,7 +260,9 @@ export function routineForPlace(S, routine, place) {
   }
   // "Build your own": what she added to a session that resting an area left short (fills.js).
   const extra = fillEntries(S, routine, place, new Set(ex.map(e => e.id)))
-  return changed || extra.length ? { ...routine, ex: [...ex, ...extra] } : routine
+  // Go easy: two mobility moves for the area open a session she has accepted an exercise in (mobility.js).
+  const warm = ex.length ? mobilityEntries(S, rows, new Set([...ex, ...extra].map(e => e.id))) : []
+  return changed || extra.length || warm.length ? { ...routine, ex: [...warm, ...ex, ...extra] } : routine
 }
 
 /** The place a session is running at, or the one that is active: an equipment profile, or null. */
