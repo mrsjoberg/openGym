@@ -163,3 +163,26 @@
 /* A review row that waits its turn: the whole line opens it. */
 .fk-swap-wait{width:100%;appearance:none;background:none;border:0;border-bottom:1px solid var(--sep);font:inherit;color:inherit;text-align:start;cursor:pointer}
 .fk-swap-wait .fk-prog-about{flex:none}
+
+/* Home opens on today's session (Today.jsx): the place menu, the session as the title, each
+   exercise with what changed about it, one button. */
+.fk-today{display:flex;flex-direction:column;gap:10px;margin:8px 0 20px}
+.fk-today-top{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+.fk-today-tools{display:flex;align-items:center;gap:8px;flex:none}
+.fk-place-menu{display:inline-flex;align-items:center;gap:8px;min-height:44px;max-width:11rem;padding:0 14px;border:1px solid var(--ink);border-radius:2px;background:transparent;color:var(--ink);font-size:.875rem;font-weight:500}
+.fk-place-menu>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fk-today>.fk-eyebrow{margin-top:8px}
+.fk-today-title{margin:0;font-family:var(--ff-display);font-size:2.25rem;font-weight:400;line-height:1.05;letter-spacing:-.02em;overflow-wrap:break-word}
+.fk-today-title em{font-style:italic}
+.fk-today-sub{margin:0;color:var(--label-2);font-size:.875rem;line-height:1.5}
+.fk-today .fk-place-note{margin:0}
+.fk-today .fk-place-note.quiet{min-height:44px;border-top:1px solid var(--sep);border-bottom:1px solid var(--sep)}
+.fk-today .fk-place-note.quiet+.fk-place-note.quiet{border-top:0;margin-top:-10px}
+.fk-today-list{list-style:none;margin:0;padding:0;border-top:1px solid var(--sep)}
+.fk-today-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:58px;padding:9px 0;border-bottom:1px solid var(--sep)}
+.fk-today-ex{display:flex;flex-direction:column;gap:3px;min-width:0}
+.fk-today-name{font-size:.9375rem;font-weight:500;line-height:1.3}
+.fk-today-tags{display:flex;flex-wrap:wrap;gap:4px 12px}
+.fk-today-amount{flex:none;color:var(--label-2);font-size:.8125rem;font-variant-numeric:tabular-nums}
+.fk-today-start{min-height:52px;margin-top:6px}
+.fk-today-other{align-self:center;min-height:44px}

@@ -1,5 +1,5 @@
-// On Home: where she is training, one tap to say otherwise, and a line when the plan holds
-// exercises that place cannot do and she has not decided about yet. Switching place asks only
+// For Home (Today.jsx): where she is training, one tap to say otherwise, and a line when the plan
+// holds exercises that place cannot do and she has not decided about yet. Switching place asks only
 // about those; what she approved there before simply applies. Also the small note in a running
 // workout that names what an exercise stands in for.
 import { useNavigate } from 'react-router-dom'
@@ -10,7 +10,6 @@ import { EXIDX } from '../lib/exercises.js'
 import { effectiveRoutines } from '../lib/history.js'
 import { switchGym } from '../lib/gym-inventory.js'
 import { menuSheet, fitkatCheckinSheet } from '../sheets.jsx'
-import Icon from '../components/Icon.jsx'
 import { limitsOf, AREA_LABEL } from './limits.js'
 import { FINISHER_LABEL, FINISHER_HINT } from './BoneBalance.jsx'
 import { limitTag } from './Limits.jsx'
@@ -20,20 +19,14 @@ import { currentPlace, undecidedCount, swappedCount } from './place-swaps.js'
 import { saidOf, checkinOf } from './checkin.js'
 import { todayISO } from '../lib/format.js'
 
-export default function PlaceBar() {
+/** Where she trains today, and the sheet that changes it: { places, place, pick }. */
+export function usePlacePick() {
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
   const nav = useNavigate()
-  useLang()
   const places = placesOf(S)
   const place = currentPlace(S)
   const today = todayISO()
-  const said = saidOf(S, today, ft)
-  // The check-in can be answered here, before any workout, and changed until one starts.
-  const checked = !!checkinOf(S, today)
-  const open = !S.active && !(S.workouts || []).some(w => w?.d === today)
-  const ask = open && !checked && S.dailyForm !== false
-  if (!places.length && !said.length && !ask && !(open && checked)) return null
   const pick = () => menuSheet({
     title: ft('Where are you training today?'),
     items: places.map(p => ({
@@ -46,15 +39,25 @@ export default function PlaceBar() {
       },
     })),
   })
+  return { places, place, pick }
+}
+
+/** The lines under Home's title: the check-in, and the swaps that wait for her. */
+export function PlaceNotes() {
+  const S = useStore(s => s.S)
+  const nav = useNavigate()
+  useLang()
+  const place = currentPlace(S)
+  const today = todayISO()
+  const said = saidOf(S, today, ft)
+  // The check-in can be answered here, before any workout, and changed until one starts.
+  const checked = !!checkinOf(S, today)
+  const open = !S.active && !(S.workouts || []).some(w => w?.d === today)
+  const ask = open && !checked && S.dailyForm !== false
   const left = place ? undecidedCount(S, S.routines, place) : 0
   const leftToday = place ? undecidedCount(S, effectiveRoutines(S, today), place) : 0
   const swapped = place ? swappedCount(S, S.routines, place) : 0
-  return <div className="fk-placebar">
-    {places.length > 0 && <button type="button" className="fk-place-pick" onClick={pick} aria-label={ft('Training at {0}, change place', place ? place.name : '')}>
-      <span className="fk-eyebrow">{ft('Training at')}</span>
-      <span className="fk-place-pick-name">{place ? place.name : ft('Choose a place')}</span>
-      <Icon name="chevronDown" />
-    </button>}
+  return <>
     {ask && <button type="button" className="fk-place-note quiet" onClick={fitkatCheckinSheet}>
       <span>{ft('How are you today?')}</span>
       <span className="fk-link">{ft('Check in')}</span>
@@ -75,7 +78,7 @@ export default function PlaceBar() {
       <span>{ft('{0} exercises swapped for {1}.', swapped, place.name)}</span>
       <span className="fk-link dim">{ft('Change')}</span>
     </button>}
-  </div>
+  </>
 }
 
 /** In a running workout, under the exercise: what it replaced. */

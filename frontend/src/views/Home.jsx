@@ -38,8 +38,7 @@ import { FastingLine } from '../components/SisterApps.jsx'
 import { ChallengesCard } from '../components/Challenges.jsx'
 import { isOn } from '../lib/modules.js'
 import { appName, overlayOn } from '../fitkat/brand.js'
-import PlaceBar from '../fitkat/PlaceBar.jsx'
-import { Wordmark } from '../fitkat/Wordmark.jsx'
+import Today from '../fitkat/Today.jsx'
 import { BoneLine } from '../fitkat/BoneBalance.jsx'
 import FitkatRecovery from '../fitkat/SoreHint.jsx'
 
@@ -139,14 +138,23 @@ export default function Home() {
   const apartSessions = S.active ? [] : daySessionsStatus(S, todayISO()).filter(x => x.routines.length)
   const splitDay = apartSessions.length > 1
 
+  // FitKat: Home opens on today's session (fitkat/Today.jsx), on a weekday plan with one session a
+  // day. Rotation plans and split days keep the rows of the week card below.
+  const fkPlain = overlayOn() && !rotating && !splitDay
+  const dateLabel = today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })
+  const gear = <button className="iconbtn" data-tour="settings-gear" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="gear" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>
+
   return <div className="narrow">
-    <div className="hdr">
+    {overlayOn() ? <Today gear={gear} day={{
+      plain: fkPlain, routines: todayRoutines, name: todayName, active: S.active || null, editing: editingSaved, done: doneToday,
+      rescheduled: !!todayOvr, nextLabel: next ? t('Next session: {0}, {1}', t(DAYN[next.weekday]), next.routine.name) : '',
+      date: dateLabel, onStart: onToday, onOther: startPickerSheet,
+    }} /> : <div className="hdr">
       <SeasonDeco spot="header-bats" />
-      <div><h1>{user ? t('Hi {0}', user.name) : overlayOn() ? <Wordmark /> : appName()}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
-      <button className="iconbtn" data-tour="settings-gear" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="gear" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>
-    </div>
+      <div><h1>{user ? t('Hi {0}', user.name) : appName()}</h1><div className="sub">{dateLabel}</div></div>
+      {gear}
+    </div>}
     <TrainerNotice />
-    {overlayOn() && <PlaceBar />}
     {/* FitKat: this week's bone and balance goals, one tap from their screen (fitkat/BoneBalance.jsx). */}
     <BoneLine />
 
@@ -176,7 +184,7 @@ export default function Home() {
           routine name behind a green Start tag and read as still outstanding (issue #4).
           An in-progress session still wins — that one is happening right now. Tapping the
           row keeps working, so a second session in one day is a tap away, just not urged. */}
-      {splitDay ? apartSessions.map((x, i) => {
+      {fkPlain ? null : splitDay ? apartSessions.map((x, i) => {
         const name = deriveSessionName(x.routines.map(r => r.name))
         return <div key={x.ids.join('+')} className="today-row today-split" data-tour={i ? undefined : 'today'} {...tappable(() => startOrPreview(x.ids))}>
           <div className="row" style={{ gap: 9, minWidth: 0 }}>
@@ -220,7 +228,7 @@ export default function Home() {
           and your other routines) is only reachable on a day with nothing planned. The one other
           way in, "Choose a different workout" on the weigh-in sheet, does not exist when the
           weigh-in is switched off. This is that door, and it starts nothing on its own. */}
-      {!S.active && <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
+      {!S.active && !fkPlain && <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
         <Button size="sm" variant="ghost" className="dim" icon="swap" onClick={startPickerSheet}>
           {t('Choose a different workout')}
         </Button>
@@ -267,7 +275,7 @@ export default function Home() {
         (components/StreakRule.jsx). */}
     {on('motivation') && S.streakRuleAsk === true && !S.streakRule && <StreakRuleWelcome />}
 
-    {on('body') && S.showWeightCard !== false && <div className="card">
+    {on('body') && S.showWeightCard !== false && !overlayOn() && <div className="card">
       {/* one trailing action, Log; the goal lives with the goal line and the weigh-ins below (P2) */}
       <CardHead icon="scale" tint="var(--teal)" title={t('Body weight')} className="bw-head"
         action={<Button size="sm" icon="plus" onClick={() => bwSheet()}>{t('Log')}</Button>} />
