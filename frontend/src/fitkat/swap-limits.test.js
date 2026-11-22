@@ -5,7 +5,7 @@ import { setOverlay } from './brand.js'
 import { STARTER_PLANS } from '../../../api/coach/core/starter-plans.js'
 import { PRESETS } from './places.js'
 import { AREAS, withLimit, limitOn, restInvolved } from './limits.js'
-import { suggestSwaps, routineAtPlace, swapKey, withApproved, withDeclined, undecidedCount } from './place-swaps.js'
+import { suggestSwaps, routineAtPlace, swapKey, withApproved, withDeclined, undecidedCount, fitsPlace } from './place-swaps.js'
 
 beforeAll(() => setOverlay(true))
 afterAll(() => setOverlay(null))
@@ -87,10 +87,13 @@ describe('a kit swap under a limit', () => {
     for (const area of AREAS) for (const routine of routines) for (const cfg of routine.ex) {
       const ex = EXIDX[cfg.id]
       const S = { bodyLimits: lim(area, 'avoid') }
-      if (!ex || limitOn(S, cfg.id)) continue
-      const [plain] = suggestSwaps(ex, home, { exclude: routine.ex.map(e => e.id), n: 1 })
-      if (plain && limitOn(S, plain.ex.id)) { cases.push([routine, cfg, area, plain.ex.id]); break }
+      // An exercise the kit cannot do, whose plain stand-in would load the limit.
+      if (!ex || limitOn(S, cfg.id) || fitsPlace(ex, home)) continue
+      // Any of the first few: since the same movement comes first, the very first rarely loads another joint.
+      const plain = suggestSwaps(ex, home, { exclude: routine.ex.map(e => e.id), n: 8 }).find(c => limitOn(S, c.ex.id))
+      if (plain) { cases.push([routine, cfg, area, plain.ex.id]); break }
     }
+    expect(cases.length).toBeGreaterThan(0)
     const [routine, cfg, area, plain] = cases[0]
     const placeSwaps = withApproved({}, swapKey('home', routine.id, cfg.id), plain, 1)
     const before = routineAtPlace({ placeSwaps }, routine, home).find(r => r.cfg.id === cfg.id)

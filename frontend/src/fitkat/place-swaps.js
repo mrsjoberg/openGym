@@ -34,6 +34,7 @@ import { isDropped } from './drops.js'
 import { fillEntries } from './fills.js'
 import { mobilityEntries } from './mobility.js'
 import { withFinishers } from './bone.js'
+import { MOVE, POS, PICKS, NEVER } from './swap-data.js'
 
 const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v)
 const list = v => (Array.isArray(v) ? v : [])
@@ -73,11 +74,22 @@ export function fitsPlace(ex, place) {
 /**
  * Replacements for `ex` that the place can do, best first: [{ ex, sameMovement, loose }].
  *
- * Same body part and the same target muscle; within that, an exercise from the same reviewed
- * family (exercise-substitutes.js) first, then the closest movement by name, then shared helper
- * muscles. A loaded lift prefers a loaded replacement: a push-up is not a bench press. Only when
- * nothing shares the target muscle do exercises that share another muscle stand in, marked
- * `loose`. `exclude` is ids never to offer: what the routine already holds, what she declined.
+ * Same body part and the same target muscle; within that, in this order (owner, 22 Nov, after a
+ * cable pushdown was offered a lying triceps extension where a kickback was the natural stand-in):
+ *
+ *   1. a reviewed first choice for this exercise (swap-data.js PICKS: read by four AI model types,
+ *      kept only where all four called it a close stand-in), in the list's own order;
+ *   2. an exercise from the same reviewed family (exercise-substitutes.js);
+ *   3. the same movement (swap-data.js MOVE: pushdown and kickback are both a triceps extension), and
+ *      within it the same position where one is known (POS: arm by the side, overhead, lying). A
+ *      known different position counts against;
+ *   4. the closest name, kit words aside;
+ *   5. shared helper muscles, as a tie-break only: the catalogue's lists are patchy (it files the
+ *      pushdown under forearms), and they used to outweigh everything above.
+ *
+ * A loaded lift prefers a loaded replacement: a push-up is not a bench press. Only when nothing
+ * shares the target muscle do exercises that share another muscle stand in, marked `loose`.
+ * `exclude` is ids never to offer: what the routine already holds, what she declined.
  */
 export function suggestSwaps(ex, place, { exclude = [], n = 2, allow, prefer } = {}) {
   if (!ex || !place) return []
@@ -88,23 +100,38 @@ export function suggestSwaps(ex, place, { exclude = [], n = 2, allow, prefer } =
   const helpers = new Set([ex.mg, ...list(ex.sm)].filter(Boolean))
   const loaded = ex.eq !== 'body weight'
   const family = familyOf.get(ex.id)
+  const move = MOVE[ex.id], pos = POS[ex.id]
+  const picks = PICKS[ex.id] || []
+  // What every reviewer called no stand-in for this exercise is never offered for it.
+  for (const id of NEVER[ex.id] || []) skip.add(id)
   const strict = [], loose = []
   for (const c of Object.values(EXIDX)) {
-    if (!c || skip.has(c.id) || c.bp !== ex.bp || !c.n) continue
+    if (!c || skip.has(c.id) || !c.n) continue
+    // A reviewed first choice was read as a whole by the reviewers, so the catalogue's fields do not
+    // rule it out below. Her kit, what the session already holds and her limits still do.
+    const pick = picks.indexOf(c.id)
+    if (pick < 0 && c.bp !== ex.bp) continue
     if (!eqAvailable(equipment, c, machines)) continue
     // `allow` rules a candidate out (it loads one of her limits); `prefer` puts some first (they
     // leave an area she rests alone). Both come from routineAtPlace.
     if (allow && !allow(c)) continue
-    if (NOT_A_LIFT.test(c.n) || (!hasBall && NEEDS_BALL.test(c.n))) continue
-    if (c.cat !== ex.cat && OTHER_KINDS.has(c.cat)) continue
+    if (!hasBall && NEEDS_BALL.test(c.n)) continue
+    if (pick < 0 && (NOT_A_LIFT.test(c.n) || (c.cat !== ex.cat && OTHER_KINDS.has(c.cat)))) continue
     const sameTarget = !!ex.tg && c.tg === ex.tg
     const shared = overlap(helpers, new Set([c.mg, ...list(c.sm)].filter(Boolean)))
-    if (!sameTarget && c.mg !== ex.mg && !shared) continue
+    if (pick < 0 && !sameTarget && c.mg !== ex.mg && !shared) continue
     const sameFamily = !!family && familyOf.get(c.id) === family
     const movement = overlap(words, movementWords(c))
-    const score = (sameFamily ? 4 : 0) + 3 * movement + 2 * shared + (c.mg === ex.mg ? 1 : 0)
-      - (loaded && c.eq === 'body weight' ? 3 : 0)
-    ;(sameTarget ? strict : loose).push({ ex: c, score, first: prefer && prefer(c) ? 1 : 0, sameMovement: sameFamily || movement >= 0.5, loose: !sameTarget })
+    const sameMove = move !== undefined && MOVE[c.id] === move
+    const samePos = sameMove && !!pos && POS[c.id] === pos
+    const otherPos = sameMove && !!pos && !!POS[c.id] && POS[c.id] !== pos
+    // A reviewed pick outranks everything, and the list's own order outranks the terms below.
+    const score = (pick >= 0 ? 10000 - 100 * pick : 0) + (sameFamily ? 6 : 0) + (sameMove ? 4 : 0) + (samePos ? 3 : 0) - (otherPos ? 2 : 0)
+      + 3 * movement + 0.5 * shared + (c.mg === ex.mg ? 0.25 : 0)
+      - (loaded && c.eq === 'body weight' && pick < 0 ? 3 : 0)
+    // "Same movement" on the card: reviewed, the same family, the same movement in no other position, or nearly the same name.
+    const close = pick >= 0 || sameFamily || (sameMove && !otherPos) || movement >= 0.5
+    ;(sameTarget || pick >= 0 ? strict : loose).push({ ex: c, score, first: prefer && prefer(c) ? 1 : 0, sameMovement: close, loose: !sameTarget && pick < 0 })
   }
   // The id as the last key: the same kit always gives the same suggestions.
   const ranked = arr => arr.sort((a, b) => b.first - a.first || b.score - a.score || (a.ex.id < b.ex.id ? -1 : 1))

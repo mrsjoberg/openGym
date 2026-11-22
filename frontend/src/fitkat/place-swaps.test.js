@@ -5,6 +5,7 @@ import { buildSessionEntries } from '../lib/session-start.js'
 import { STARTER_PLANS } from '../../../api/coach/core/starter-plans.js'
 import { PRESETS } from './places.js'
 import { withLimit } from './limits.js'
+import { MOVE, MOVES, POS, PICKS, NEVER } from './swap-data.js'
 import { mergeStates } from '../lib/sync-merge.js'
 import {
   suggestSwaps, fitsPlace, routineAtPlace, routineForPlace, routineHere, fitOf, swapKey,
@@ -26,6 +27,7 @@ const lowerA = { id: 'r1', name: 'Lower A', ex: [
   { id: '0605', sets: 3, reps: 15, rest: 45 },                // lever standing calf raise
 ] }
 const name = id => EXIDX[id]?.n
+const byN = n => Object.values(EXIDX).find(e => e && e.n === n)
 
 describe('what a place can do', () => {
   it('reads the kit off the equipment profile', () => {
@@ -80,6 +82,80 @@ describe('suggestions', () => {
     const out = suggestSwaps(EXIDX['0085'], travel)
     expect(out.length).toBeGreaterThan(0)
     for (const s of out) { expect(s.ex.eq).toBe('body weight'); expect(s.ex.n).not.toMatch(/stretch|pose/) }
+  })
+})
+
+describe('the same movement comes before the same muscle alone', () => {
+  const PUSHDOWN = byN('cable triceps pushdown (v-bar)'), LYING = byN('dumbbell pronate-grip triceps extension')
+  const dumbbells = { id: 'db', name: 'Dumbbells', equipment: ['dumbbell'], ...ACC }
+  const names = (ex, place, n = 6) => suggestSwaps(ex, place, { n }).map(s => s.ex.n)
+
+  it('knows the movement of the exercises it names, and the arm position of a triceps extension', () => {
+    for (const id of Object.keys(MOVE)) expect(EXIDX[id], id).toBeTruthy()
+    for (const id of Object.keys(POS)) { expect(MOVES[MOVE[id]], id).toBe('triceps extension'); expect(['s', 'o', 'l']).toContain(POS[id]) }
+    for (const [id, picks] of Object.entries(PICKS)) { expect(EXIDX[id], id).toBeTruthy(); for (const p of picks) expect(EXIDX[p], id + ' -> ' + p).toBeTruthy() }
+    expect(MOVES[MOVE[PUSHDOWN.id]]).toBe('triceps extension')
+    expect(POS[PUSHDOWN.id]).toBe('s')
+    expect(POS[byN('dumbbell kickback').id]).toBe('s')
+    expect(POS[LYING.id]).not.toBe('s')
+    expect(POS[byN('dumbbell lying triceps extension').id]).toBe('l')
+    expect(POS[byN('band overhead triceps extension').id]).toBe('o')
+  })
+  it('offers a kickback for a cable pushdown where there are only dumbbells, not a lying or overhead extension', () => {
+    // The owner's case (22 Nov): the catalogue files the pushdown and that extension both under "forearms".
+    // The first four all keep the arm by the side, and the very first is the plain kickback.
+    const first = suggestSwaps(PUSHDOWN, dumbbells, { n: 4 }).map(s => s.ex)
+    expect(first[0].n).toBe('dumbbell kickback')
+    for (const c of first) expect(POS[c.id], c.n).toBe('s')
+    expect(names(PUSHDOWN, dumbbells, 60).indexOf(LYING.n)).toBeGreaterThan(8)
+    expect(suggestSwaps(PUSHDOWN, dumbbells, { n: 1 })[0].sameMovement).toBe(true)
+  })
+  it('offers a band pushdown first where there are bands, then kickbacks', () => {
+    const first = suggestSwaps(PUSHDOWN, home, { n: 5 }).map(s => s.ex)
+    expect(first[0].n).toMatch(/pushdown/)
+    for (const c of first) expect(POS[c.id], c.n).toBe('s')
+  })
+  it('keeps a press a press: an incline bench press is not offered a chest squeeze at home', () => {
+    const first = names(byN('barbell incline bench press'), home, 3)
+    for (const n of first) { expect(n).toMatch(/press/); expect(n).not.toMatch(/svend/) }
+  })
+  it('offers the reviewed first choices before anything else, in their order, whatever the kit', () => {
+    // Four AI model types read every candidate; a pick is one all four called a close stand-in.
+    const noCable = { id: 'g', name: 'Gym', equipment: ['body weight', 'dumbbell', 'barbell', 'bench', 'adjustable bench'], ...ACC }
+    expect(suggestSwaps(PUSHDOWN, noCable, { n: 1 })[0].ex.n).toBe('dumbbell kickback')
+    expect(suggestSwaps(PUSHDOWN, dumbbells, { n: 1 })[0].ex.n).toBe('dumbbell kickback')
+    expect(suggestSwaps(PUSHDOWN, home, { n: 2 }).map(s => s.ex.n)).toEqual(['band pushdown', 'dumbbell kickback'])
+    for (const [id, picks] of Object.entries(PICKS)) {
+      const everything = { id: 'all', name: 'All', equipment: [...new Set(Object.values(EXIDX).map(e => e?.eq).filter(Boolean))], ...ACC }
+      const got = suggestSwaps(EXIDX[id], everything, { n: picks.length }).map(s => s.ex.id)
+      const able = picks.filter(p => fitsPlace(EXIDX[p], everything) && !/exercise ball|stability ball|swiss ball|bosu/i.test(EXIDX[p].n))
+      expect(got.slice(0, able.length), EXIDX[id].n).toEqual(able)
+    }
+  })
+  it('still keeps a pick out when the session holds it, she declined it, or it loads one of her limits', () => {
+    const KICK = byN('dumbbell kickback')
+    expect(suggestSwaps(PUSHDOWN, dumbbells, { n: 1, exclude: [KICK.id] })[0].ex.id).not.toBe(KICK.id)
+    expect(suggestSwaps(PUSHDOWN, dumbbells, { n: 1, allow: c => c.id !== KICK.id })[0].ex.id).not.toBe(KICK.id)
+    // And one she has no kit for is not offered at all.
+    expect(suggestSwaps(PUSHDOWN, travel, { n: 40 }).map(s => s.ex.eq).every(eq => eq === 'body weight')).toBe(true)
+  })
+  it('never offers what every reviewer called no stand-in', () => {
+    expect(Object.keys(NEVER).length).toBeGreaterThan(10)
+    for (const [id, never] of Object.entries(NEVER)) {
+      expect(EXIDX[id], id).toBeTruthy()
+      for (const place of [home, gym, travel]) {
+        const got = suggestSwaps(EXIDX[id], place, { n: 60 }).map(s => s.ex.id)
+        for (const x of never) expect(got, EXIDX[id].n + ' -> ' + EXIDX[x]?.n).not.toContain(x)
+      }
+    }
+  })
+  it('does not let the catalogue\'s helper muscles outweigh the movement', () => {
+    // Shared helper muscles are worth less than the same movement, whatever they are.
+    for (const id of ['0241', '0025', '0043', '0085']) {
+      const ex = EXIDX[id]
+      const top = suggestSwaps(ex, home, { n: 1 })[0]
+      if (MOVE[id] !== undefined && suggestSwaps(ex, home, { n: 80 }).some(s => MOVE[s.ex.id] === MOVE[id])) expect(MOVE[top.ex.id], ex.n + ' -> ' + top.ex.n).toBe(MOVE[id])
+    }
   })
 })
 
