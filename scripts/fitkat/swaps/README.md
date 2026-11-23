@@ -30,8 +30,9 @@ from the catalogue text alone: no pictures, no ids, a different order for each. 
 would offer first, B acceptable, C not a stand-in. Each grade had to quote the candidate's own text, and a script
 checked every quote. Control pairs with a known answer and repeated pairs were mixed in.
 
-A candidate is a pick only where all four said A (213 of 1,070 pairs, for 40 of the 45 exercises). What all four
-called C (75 pairs) is never offered for that exercise. All four said B for 436. The other 345 pairs, where they
+A candidate is a pick where all four said A (213 of 1,070 pairs, for 40 of the 45 exercises), or, after them, where three
+said A and the fourth B (72 more, added at the owner's word on 23 November; 285 picks for 43 exercises). What all four
+called C (75 pairs) is never offered for that exercise. All four said B for 436. The other 273 pairs, where they
 did not agree, are in `council.json` and change nothing; 4 of them split between A and C. The reviewers' brief is
 `council-brief.md`.
 
@@ -40,7 +41,6 @@ an unrelated exercise were graded C; 30 of 32 controls with the same lift on oth
 216 repeated pairs got the same grade twice.
 
 Known limits: the catalogue does not say when an exercise needs a bench or a box, so a pick can still be offered
-at a place without one. The five programme exercises with no unanimous pick (band pull apart, dips between chairs,
-front plank, pike push up, side plank) and every exercise outside the built-in programmes go by the general rule.
+at a place without one. The programme exercises with no pick (see `picks.json`) and every exercise outside the built-in programmes go by the general rule.
 
 The reviewers are AI models, not a physiotherapist or a trainer.
