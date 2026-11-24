@@ -93,6 +93,7 @@ const RU = {
   'Your places, and what each one has.': 'Ваши места и что в каждом есть.',
   'No programme for now': 'Пока без программы',
   'Settings': 'Настройки',
+  'Box or step': 'Платформа или степ',
   '1 exercise in today\u2019s session needs a swap for {0}.': 'В сегодняшней тренировке 1 упражнению нужна замена для «{0}».',
   '1 exercise in your plan needs a swap for {0}.': '1 упражнению в плане нужна замена для «{0}».',
   '1 exercise swapped for {0}.': 'Заменено 1 упражнение для «{0}».',

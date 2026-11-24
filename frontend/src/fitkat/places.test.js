@@ -13,7 +13,9 @@ describe('the kit picker', () => {
   it('covers every equipment value the catalogue uses, each under a chip', () => {
     const covered = new Set(KIT_CHIPS.flatMap(c => c.eq))
     expect(ALL_EQUIPMENT.filter(e => e !== 'body weight' && !covered.has(e))).toEqual([])
-    for (const c of KIT_CHIPS) for (const e of c.eq) expect(ALL_EQUIPMENT, c.label).toContain(e)
+    // Every chip stands for openGym's values, but "Box or step", which is FitKat's own (needs.js).
+    for (const c of KIT_CHIPS) for (const e of c.eq) if (e !== 'box') expect(ALL_EQUIPMENT, c.label).toContain(e)
+    expect(chip('box').eq).toEqual(['box'])
   })
   it('ticks and unticks a chip', () => {
     let eq = toggleChip([], chip('dumbbell'))
@@ -41,7 +43,9 @@ describe('the kit picker', () => {
 describe('places', () => {
   it('start from the preset of their kind', () => {
     const [gym, home, travel] = ['gym', 'home', 'travel'].map(k => makePlace(k))
-    expect(gym.name).toBe('My gym'); expect(gym.equipment.length).toBe(ALL_EQUIPMENT.length)
+    // A gym has everything, a box or step included.
+    expect(gym.name).toBe('My gym'); expect(gym.equipment.length).toBe(ALL_EQUIPMENT.length + 1); expect(gym.equipment).toContain('box')
+    expect(home.equipment).not.toContain('box')
     expect(home.kind).toBe('home'); expect(presetOf(home.equipment)).toBe('home')
     expect(travel.equipment).toEqual([])
     expect(new Set([gym.id, home.id, travel.id]).size).toBe(3)

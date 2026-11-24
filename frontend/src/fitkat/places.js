@@ -6,6 +6,7 @@
 // short list of places to pick from, presets to start a kit from, and a picker that groups
 // openGym's equipment values the way a person thinks about them.
 import { ALL_EQUIPMENT, ACC_V, newProfile, profileEquipment } from '../lib/equipment.js'
+import { BOX } from './needs.js'
 import { switchGym } from '../lib/gym-inventory.js'
 import { STARTER_PLANS } from '../../../api/coach/core/starter-plans.js'
 import { fitOf } from './place-swaps.js'
@@ -37,6 +38,8 @@ export const KIT_GROUPS = [
     { id: 'bench', label: 'Flat bench', eq: ['bench'], off: ['bench', 'adjustable bench'] },
     { id: 'adjbench', label: 'Adjustable bench', eq: ['bench', 'adjustable bench'], off: ['adjustable bench'] },
     { id: 'pullup', label: 'Pull-up bar', eq: ['pull-up bar'] },
+    // FitKat's own: something sturdy to step or jump onto (needs.js). Not one of openGym's values.
+    { id: 'box', label: 'Box or step', eq: [BOX] },
   ] },
   { title: 'Bands and small kit', chips: [
     { id: 'bands', label: 'Resistance bands', eq: ['band', 'resistance band'] },
@@ -67,11 +70,11 @@ export const KIT_GROUPS = [
 ]
 export const KIT_CHIPS = KIT_GROUPS.flatMap(g => g.chips)
 
-const clean = eq => [...new Set(list(eq))].filter(e => ALL_EQUIPMENT.includes(e))
+const clean = eq => [...new Set(list(eq))].filter(e => ALL_EQUIPMENT.includes(e) || e === BOX)
 
 /** The kits a place can start from. */
 export const PRESETS = {
-  full: () => [...ALL_EQUIPMENT],
+  full: () => [...ALL_EQUIPMENT, BOX],
   home: () => clean(['dumbbell', 'kettlebell', 'band', 'resistance band']),
   bodyweight: () => [],
 }

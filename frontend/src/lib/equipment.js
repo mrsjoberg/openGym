@@ -2,6 +2,9 @@ import { t } from './i18n-core.js'
 import { EXDB } from './exercises-data.js'
 import { ownsNoDumbbells } from './dumbbells.js'
 import { machineKindOf, profileMachines, NO_MACHINE } from './machine-kinds.js'
+// FitKat: which exercises need a bench, a box or gym furniture, reviewed (fitkat/needs.js).
+import { overlayOn } from '../fitkat/brand.js'
+import { fitkatAccessories } from '../fitkat/needs.js'
 
 // Pieces of kit the catalogue never names as an exercise's equipment — "dumbbell bench press" is
 // tagged `dumbbell`, yet it needs a bench; "chin-up" is tagged `body weight`, yet it needs a bar.
@@ -31,7 +34,7 @@ export function accessoriesOf(ex) {
   if (tilt) need.push('adjustable bench')
   if (/pull-up|pull up|chin-up|\bchin\b|hanging|dead hang|muscle-up|muscle up/.test(n)) need.push('pull-up bar')
   for (const a of Array.isArray(ex.nd) ? ex.nd : []) if (ACCESSORIES.includes(a) && !need.includes(a)) need.push(a)
-  return need
+  return overlayOn() ? fitkatAccessories(ex, need) : need
 }
 
 // Every equipment value present in the catalogue, most common first, then the accessories —
